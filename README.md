@@ -59,3 +59,14 @@ GitHub Pages: publish the `dist` folder (e.g. with a Pages workflow).
   Filters, shadows and blend modes are never driven per frame. Only scenes near the viewport get `will-change`.
 - **Type.** Titles rise out of overflow-hidden slots (masked words / letters); body copy lights up word by word and leaves in the same order.
 - **Pipeline:** `prepare_frames.py` (frames from Figma exports) → `make_cutouts.py` (cut-outs + ambient) → `optimize_images.py` (other art).
+
+## Useful layer (v3)
+
+- `src/i18n/extra.ts` — glossary terms, practice questions, UI copy for the visitor's tools (per language, English fallback).
+  Languages: EN · RU · ES · UK · FR · DE · PT. Arabic/Hebrew (right-to-left) is not supported yet: stage layout is built on a left-to-right design canvas.
+- `src/ui/panel.ts` — practice (question + breathing heart + private note), "My path" (notes, letter-to-self `.ics`, quote card PNG, share), map of the journey.
+- `src/ui/glossary.ts` — tooltips on the first occurrence of each term per stage.
+- `src/ui/speech.ts` — "Listen" via the browser's speech synthesis (no audio files).
+- Gentle mode (`src/core/prefs.ts`): no motion, larger text, quieter music — reuses the reduced-motion build.
+- "Light conquers darkness": `#dawn` warms the screen and the music low-pass filter opens as scroll progress grows.
+- Notes live in `localStorage` only; nothing is sent anywhere.

@@ -20,6 +20,9 @@ let src: string | null = null;
 let on = false;
 let wired = false;
 const level = { v: 0 };
+const mix = { duck: 1, soft: 1 };
+let filter: BiquadFilterNode | null = null;
+let routed = false;
 
 const base = import.meta.env.BASE_URL;
 
@@ -82,7 +85,7 @@ function lubDub() {
 
 function apply() {
   if (master) master.gain.value = level.v;
-  if (el) el.volume = Math.min(1, level.v * MUSIC_VOLUME);
+  if (el) el.volume = Math.min(1, level.v * MUSIC_VOLUME * mix.duck * mix.soft);
 }
 
 /**
@@ -140,6 +143,20 @@ async function enable() {
     el.preload = 'auto';
   }
   if (el) el.play().catch(() => undefined);
+  // route the music through a low-pass filter so it can open up (grow brighter) as the journey moves toward the light
+  if (ctx && el && !routed) {
+    try {
+      const node = ctx.createMediaElementSource(el);
+      filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = brightFreq;
+      filter.Q.value = 0.4;
+      node.connect(filter).connect(ctx.destination);
+      routed = true;
+    } catch {
+      /* already routed or unsupported: play unfiltered */
+    }
+  }
   if (!wired) {
     wired = true;
     onLub(lubDub);
@@ -186,4 +203,22 @@ export function bindSoundButton(label: (on: boolean) => string) {
       b.setAttribute('aria-label', label(on));
     });
   }
+}
+
+let brightFreq = 3200;
+
+/** 0 → 1 across the journey: the music slowly opens up (3 kHz → 16 kHz), a warmer, brighter sound. */
+export function setBrightness(p: number): void {
+  brightFreq = 3200 + 12800 * Math.pow(Math.min(1, Math.max(0, p)), 1.4);
+  if (filter && ctx) filter.frequency.setTargetAtTime(brightFreq, ctx.currentTime, 0.4);
+}
+
+/** Lower the music while the chapter is read aloud. */
+export function duckMusic(on: boolean): void {
+  gsap.to(mix, { duck: on ? 0.28 : 1, duration: 0.6, onUpdate: apply });
+}
+
+/** Gentle mode: quieter music. */
+export function setSoftVolume(soft: boolean): void {
+  gsap.to(mix, { soft: soft ? 0.55 : 1, duration: 0.6, onUpdate: apply });
 }

@@ -1,4 +1,4 @@
-import type { Locale } from '../i18n';
+import { extraFor, type Locale } from '../i18n';
 import { img, frameUrl, frameBg, cutUrl, bgUrl, cutAspect, ROMAN, scenes, type SceneDef, type HeartLayer } from './config';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -123,6 +123,8 @@ function stage(s: Extract<SceneDef, { type: 'stage' }>, L: Locale): string {
   const q = t.q ? `<p class="st__q">${esc(t.q)}</p>` : '';
   const ps = t.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('');
   const cite = t.cite ? `<p class="st__cite">${esc(t.cite)}</p>` : '';
+  const X = extraFor(L.code);
+  const act = `<div class="st__act"><button type="button" class="act act--p" data-practice="${s.n}"><i></i>${esc(X.ui.practice)}</button><button type="button" class="act act--l" data-listen="${s.n}"><i></i><span>${esc(X.ui.listen)}</span></button></div>`;
   return `
 <section class="st st--${s.n} st--${s.side} scene" id="${s.id}" data-scene="${s.id}" data-stage="${s.n}">
   <div class="st__bg">${a.bg}</div>
@@ -130,7 +132,7 @@ function stage(s: Extract<SceneDef, { type: 'stage' }>, L: Locale): string {
   <div class="st__cv">
     <div class="st__text">
       <h2 class="st__title">${esc(L.ui.stage)} ${ROMAN[s.n - 1]}: ${esc(t.title)}</h2>
-      ${q}${ps}${cite}
+      ${q}${ps}${cite}${act}
     </div>
   </div>
 </section>`;
@@ -145,6 +147,7 @@ function epilogue(L: Locale, z: number, dwell: number): string {
     <h2 class="st__title">${esc(L.ui.epilogue)}: ${esc(e.title)}</h2>
     <p class="st__q">${esc(e.q)}</p>
     ${e.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('')}
+    <div class="st__act st__act--c"><button type="button" class="act act--p" data-diary><i></i>${esc(extraFor(L.code).ui.diary)}</button><button type="button" class="act act--l" data-map><i></i>${esc(extraFor(L.code).ui.map)}</button></div>
   </div>
 </section>
 ${stack('finale', 'finale', dwell, z + 1, `<section class="fin scene" id="finale" data-scene="finale">

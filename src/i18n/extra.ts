@@ -1,0 +1,397 @@
+/**
+ * Copy for the "useful" layer: glossary, practices, diary, map, accessibility, sharing.
+ * Kept apart from the main story text; any missing language falls back to English.
+ */
+export interface Term {
+  /** lower-case word beginnings that trigger the tooltip */
+  stems: string[];
+  term: string;
+  text: string;
+}
+
+export interface Extra {
+  ui: {
+    practice: string;
+    practiceTitle: string;
+    listen: string;
+    stopListen: string;
+    map: string;
+    mapTitle: string;
+    mapHint: string;
+    soft: string;
+    softTitle: string;
+    diary: string;
+    diaryTitle: string;
+    diaryEmpty: string;
+    close: string;
+    inhale: string;
+    hold: string;
+    exhale: string;
+    notePh: string;
+    saved: string;
+    letterTitle: string;
+    letterText: string;
+    letterPh: string;
+    letterBtn: string;
+    card: string;
+    share: string;
+    copied: string;
+    light: string;
+    stageWord: string;
+    breathHint: string;
+  };
+  gloss: Term[];
+  /** one reflective question per stage (7) */
+  practice: string[];
+}
+
+export const extras: Record<string, Extra> = {
+  en: {
+    ui: {
+      practice: 'Try it yourself',
+      practiceTitle: 'A pause for you',
+      listen: 'Listen',
+      stopListen: 'Stop',
+      map: 'Map',
+      mapTitle: 'The path',
+      mapHint: 'Choose a stage to return to it',
+      soft: 'Gentle mode',
+      softTitle: 'Gentle reading mode: no motion, larger text, quieter music',
+      diary: 'My path',
+      diaryTitle: 'Your notes along the way',
+      diaryEmpty: 'Nothing written yet. Each stage has a pause with a question — your answers stay here, on this device only.',
+      close: 'Close',
+      inhale: 'Breathe in',
+      hold: 'Hold',
+      exhale: 'Breathe out',
+      notePh: 'Write a thought, if you like. It stays only on this device.',
+      saved: 'Saved on this device',
+      letterTitle: 'A letter to yourself',
+      letterText: 'Write a few kind words to the person you will be in a month. A reminder with your letter will be added to your calendar.',
+      letterPh: 'Dear me…',
+      letterBtn: 'Remind me in a month',
+      card: 'Save a quote card',
+      share: 'Share the journey',
+      copied: 'Link copied',
+      light: 'Light',
+      stageWord: 'Stage',
+      breathHint: 'Let your breath follow the heart. Four counts in, six out.',
+    },
+    gloss: [
+      { stems: ['shadow'], term: 'Shadow', text: 'In Jung’s psychology, the parts of ourselves we have not accepted or noticed. Meeting them gently makes a person more whole, not worse.' },
+      { stems: ['anima', 'animus'], term: 'Anima & Animus', text: 'The inner “feminine” and “masculine” sides of the psyche. Jung saw them as inner guides that help us become more balanced.' },
+      { stems: ['archetype'], term: 'Archetype', text: 'A universal image shared by people across cultures — the Hero, the Wise Old Man, the Mother. They appear in myths, fairy tales and dreams.' },
+      { stems: ['individuation'], term: 'Individuation', text: 'Jung’s word for the lifelong journey of becoming yourself: gathering your scattered parts into a whole person.' },
+      { stems: ['ego'], term: 'Ego', text: 'The centre of everyday consciousness — the “I” that makes plans and decisions. It is only a part of the whole personality.' },
+      { stems: ['self'], term: 'The Self', text: 'The centre and wholeness of the entire psyche, conscious and unconscious. Jung often pictured it as a mandala.' },
+    ],
+    practice: [
+      'Think of a quality in other people that irritates you. Could a quiet part of you recognise it? Just notice it, without judging.',
+      'What tenderness and what strength live in you? Which of the two do you show less often?',
+      'Remember a moment when you simply knew what was right. What did that inner voice feel like?',
+      'What is one small step into the unknown that you could take this week?',
+      'How could your strength help someone else today?',
+      'What can you let go of for a minute? Rest in the quiet and notice what remains.',
+      'What did you search for outside yourself that you already carry within?',
+    ],
+  },
+  ru: {
+    ui: {
+      practice: 'Попробуй сам',
+      practiceTitle: 'Пауза для тебя',
+      listen: 'Слушать',
+      stopListen: 'Стоп',
+      map: 'Карта',
+      mapTitle: 'Путь',
+      mapHint: 'Выберите стадию, чтобы вернуться к ней',
+      soft: 'Мягкий режим',
+      softTitle: 'Мягкое чтение: без движения, крупнее текст, тише музыка',
+      diary: 'Мой путь',
+      diaryTitle: 'Ваши заметки по дороге',
+      diaryEmpty: 'Пока ничего не записано. На каждой стадии есть пауза с вопросом — ответы хранятся здесь, только на этом устройстве.',
+      close: 'Закрыть',
+      inhale: 'Вдох',
+      hold: 'Пауза',
+      exhale: 'Выдох',
+      notePh: 'Запишите мысль, если хочется. Она останется только на этом устройстве.',
+      saved: 'Сохранено на этом устройстве',
+      letterTitle: 'Письмо себе',
+      letterText: 'Напишите несколько добрых слов тому, кем вы станете через месяц. Напоминание с письмом добавится в ваш календарь.',
+      letterPh: 'Дорогой я…',
+      letterBtn: 'Напомнить через месяц',
+      card: 'Сохранить карточку с цитатой',
+      share: 'Поделиться путешествием',
+      copied: 'Ссылка скопирована',
+      light: 'Свет',
+      stageWord: 'Стадия',
+      breathHint: 'Дышите вместе с сердцем. Четыре счёта на вдох, шесть на выдох.',
+    },
+    gloss: [
+      { stems: ['тен'], term: 'Тень', text: 'В психологии Юнга — те части нас, которые мы не приняли или не заметили. Бережная встреча с ними делает человека цельнее, а не хуже.' },
+      { stems: ['аним'], term: 'Анима и Анимус', text: 'Внутренние «женское» и «мужское» начала психики. Юнг считал их внутренними проводниками, помогающими стать уравновешеннее.' },
+      { stems: ['архетип'], term: 'Архетип', text: 'Универсальный образ, общий для людей разных культур: Герой, Мудрый Старец, Мать. Встречается в мифах, сказках и снах.' },
+      { stems: ['индивидуац'], term: 'Индивидуация', text: 'Слово Юнга для пути длиною в жизнь — становления самим собой: собирания разрозненных частей в целостного человека.' },
+      { stems: ['эго'], term: 'Эго', text: 'Центр повседневного сознания — «я», которое строит планы и принимает решения. Это лишь часть всей личности.' },
+      { stems: ['самост'], term: 'Самость', text: 'Центр и целостность всей психики, сознательной и бессознательной. Юнг часто изображал её в виде мандалы.' },
+    ],
+    practice: [
+      'Вспомните качество в других людях, которое вас раздражает. Не узнаёт ли его тихая часть вас самих? Просто заметьте это, не осуждая.',
+      'Какая нежность и какая сила живут в вас? Какую из них вы проявляете реже?',
+      'Вспомните момент, когда вы просто знали, как правильно. Каким был этот внутренний голос?',
+      'Какой один маленький шаг в неизвестность вы могли бы сделать на этой неделе?',
+      'Чем ваша сила могла бы помочь кому-то сегодня?',
+      'Что можно отпустить на минуту? Побудьте в тишине и заметьте, что остаётся.',
+      'Что вы искали вовне, но уже носите в себе?',
+    ],
+  },
+  es: {
+    ui: {
+      practice: 'Pruébalo tú',
+      practiceTitle: 'Una pausa para ti',
+      listen: 'Escuchar',
+      stopListen: 'Parar',
+      map: 'Mapa',
+      mapTitle: 'El camino',
+      mapHint: 'Elige una etapa para volver a ella',
+      soft: 'Modo suave',
+      softTitle: 'Lectura suave: sin movimiento, texto más grande, música más baja',
+      diary: 'Mi camino',
+      diaryTitle: 'Tus notas por el camino',
+      diaryEmpty: 'Aún no hay nada escrito. Cada etapa tiene una pausa con una pregunta; tus respuestas se quedan aquí, solo en este dispositivo.',
+      close: 'Cerrar',
+      inhale: 'Inhala',
+      hold: 'Pausa',
+      exhale: 'Exhala',
+      notePh: 'Escribe un pensamiento si quieres. Se queda solo en este dispositivo.',
+      saved: 'Guardado en este dispositivo',
+      letterTitle: 'Una carta para ti',
+      letterText: 'Escribe unas palabras amables a quien serás dentro de un mes. Se añadirá a tu calendario un recordatorio con tu carta.',
+      letterPh: 'Querido yo…',
+      letterBtn: 'Recuérdamelo en un mes',
+      card: 'Guardar tarjeta con una cita',
+      share: 'Compartir el viaje',
+      copied: 'Enlace copiado',
+      light: 'Luz',
+      stageWord: 'Etapa',
+      breathHint: 'Deja que tu respiración siga al corazón. Cuatro tiempos para inhalar, seis para exhalar.',
+    },
+    gloss: [
+      { stems: ['sombra'], term: 'Sombra', text: 'En la psicología de Jung, las partes de nosotros que no hemos aceptado ni notado. Encontrarlas con suavidad nos hace más completos, no peores.' },
+      { stems: ['anima', 'ánima', 'animus', 'ánimus'], term: 'Ánima y Ánimus', text: 'Los lados interiores «femenino» y «masculino» de la psique. Jung los veía como guías internas que ayudan a equilibrarnos.' },
+      { stems: ['arquetip'], term: 'Arquetipo', text: 'Una imagen universal compartida por personas de distintas culturas: el Héroe, el Sabio, la Madre. Aparece en mitos, cuentos y sueños.' },
+      { stems: ['individuaci'], term: 'Individuación', text: 'La palabra de Jung para el viaje de toda la vida de llegar a ser uno mismo: reunir las partes dispersas en una persona entera.' },
+      { stems: ['ego'], term: 'Ego', text: 'El centro de la conciencia cotidiana: el «yo» que hace planes y decide. Es solo una parte de toda la personalidad.' },
+      { stems: ['sí-mismo', 'si-mismo', 'sí mismo'], term: 'El Sí-mismo', text: 'El centro y la totalidad de toda la psique, consciente e inconsciente. Jung lo representaba a menudo como un mandala.' },
+    ],
+    practice: [
+      'Piensa en una cualidad de otras personas que te irrita. ¿Podría una parte callada de ti reconocerla? Solo nótalo, sin juzgar.',
+      '¿Qué ternura y qué fuerza viven en ti? ¿Cuál de las dos muestras menos?',
+      'Recuerda un momento en que simplemente supiste qué era lo correcto. ¿Cómo sonaba esa voz interior?',
+      '¿Cuál es un pequeño paso hacia lo desconocido que podrías dar esta semana?',
+      '¿Cómo podría tu fuerza ayudar hoy a alguien?',
+      '¿Qué puedes soltar por un minuto? Descansa en la quietud y observa qué queda.',
+      '¿Qué buscabas fuera de ti que ya llevas dentro?',
+    ],
+  },
+  uk: {
+    ui: {
+      practice: 'Спробуй сам',
+      practiceTitle: 'Пауза для тебе',
+      listen: 'Слухати',
+      stopListen: 'Стоп',
+      map: 'Мапа',
+      mapTitle: 'Шлях',
+      mapHint: 'Оберіть стадію, щоб повернутися до неї',
+      soft: 'М’який режим',
+      softTitle: 'М’яке читання: без руху, більший текст, тихіша музика',
+      diary: 'Мій шлях',
+      diaryTitle: 'Ваші нотатки дорогою',
+      diaryEmpty: 'Поки що нічого не записано. На кожній стадії є пауза з питанням — відповіді зберігаються тут, лише на цьому пристрої.',
+      close: 'Закрити',
+      inhale: 'Вдих',
+      hold: 'Пауза',
+      exhale: 'Видих',
+      notePh: 'Запишіть думку, якщо хочеться. Вона залишиться лише на цьому пристрої.',
+      saved: 'Збережено на цьому пристрої',
+      letterTitle: 'Лист собі',
+      letterText: 'Напишіть кілька добрих слів тому, ким ви станете за місяць. Нагадування з листом додасться у ваш календар.',
+      letterPh: 'Дорогий я…',
+      letterBtn: 'Нагадати за місяць',
+      card: 'Зберегти картку з цитатою',
+      share: 'Поділитися подорожжю',
+      copied: 'Посилання скопійовано',
+      light: 'Світло',
+      stageWord: 'Стадія',
+      breathHint: 'Дихайте разом із серцем. Чотири лічби на вдих, шість на видих.',
+    },
+    gloss: [
+      { stems: ['тін'], term: 'Тінь', text: 'У психології Юнга — ті частини нас, які ми не прийняли чи не помітили. Дбайлива зустріч із ними робить людину цілішою, а не гіршою.' },
+      { stems: ['аніма', 'анімус'], term: 'Аніма й Анімус', text: 'Внутрішні «жіноче» і «чоловіче» начала психіки. Юнг вважав їх внутрішніми провідниками, що допомагають стати зрівноваженішим.' },
+      { stems: ['архетип'], term: 'Архетип', text: 'Універсальний образ, спільний для людей різних культур: Герой, Мудрий Старець, Мати. Трапляється в міфах, казках і снах.' },
+      { stems: ['індивідуац'], term: 'Індивідуація', text: 'Слово Юнга на позначення шляху довжиною в життя — ставання собою: збирання розрізнених частин у цілісну людину.' },
+      { stems: ['его'], term: 'Его', text: 'Центр повсякденної свідомості — «я», що будує плани й ухвалює рішення. Це лише частина всієї особистості.' },
+      { stems: ['самість', 'самост'], term: 'Самість', text: 'Центр і цілісність усієї психіки, свідомої та несвідомої. Юнг часто зображував її у вигляді мандали.' },
+    ],
+    practice: [
+      'Пригадайте якість в інших людях, яка вас дратує. Чи не впізнає її тиха частина вас самих? Просто помітьте це, не засуджуючи.',
+      'Яка ніжність і яка сила живуть у вас? Яку з них ви виявляєте рідше?',
+      'Пригадайте мить, коли ви просто знали, як правильно. Яким був той внутрішній голос?',
+      'Який один маленький крок у невідоме ви могли б зробити цього тижня?',
+      'Чим ваша сила могла б допомогти комусь сьогодні?',
+      'Що можна відпустити на хвилину? Побудьте в тиші й помітьте, що лишається.',
+      'Що ви шукали ззовні, але вже носите в собі?',
+    ],
+  },
+  fr: {
+    ui: {
+      practice: 'Essayez vous-même',
+      practiceTitle: 'Une pause pour vous',
+      listen: 'Écouter',
+      stopListen: 'Stop',
+      map: 'Carte',
+      mapTitle: 'Le chemin',
+      mapHint: 'Choisissez une étape pour y revenir',
+      soft: 'Mode doux',
+      softTitle: 'Lecture douce : sans mouvement, texte plus grand, musique plus basse',
+      diary: 'Mon chemin',
+      diaryTitle: 'Vos notes en chemin',
+      diaryEmpty: 'Rien d’écrit pour l’instant. Chaque étape comporte une pause et une question ; vos réponses restent ici, sur cet appareil seulement.',
+      close: 'Fermer',
+      inhale: 'Inspirez',
+      hold: 'Pause',
+      exhale: 'Expirez',
+      notePh: 'Écrivez une pensée, si vous le souhaitez. Elle reste sur cet appareil seulement.',
+      saved: 'Enregistré sur cet appareil',
+      letterTitle: 'Une lettre à soi-même',
+      letterText: 'Écrivez quelques mots bienveillants à la personne que vous serez dans un mois. Un rappel avec votre lettre sera ajouté à votre agenda.',
+      letterPh: 'Cher moi…',
+      letterBtn: 'Me le rappeler dans un mois',
+      card: 'Enregistrer une carte-citation',
+      share: 'Partager le voyage',
+      copied: 'Lien copié',
+      light: 'Lumière',
+      stageWord: 'Étape',
+      breathHint: 'Laissez votre souffle suivre le cœur. Quatre temps pour inspirer, six pour expirer.',
+    },
+    gloss: [
+      { stems: ['ombre'], term: 'Ombre', text: 'Dans la psychologie de Jung, les parts de nous-mêmes que nous n’avons pas acceptées ou remarquées. Les rencontrer avec douceur rend plus entier, pas moins bien.' },
+      { stems: ['anima', 'animus'], term: 'Anima & Animus', text: 'Les côtés intérieurs « féminin » et « masculin » de la psyché. Jung y voyait des guides intérieurs qui aident à s’équilibrer.' },
+      { stems: ['archétype'], term: 'Archétype', text: 'Une image universelle partagée par les cultures : le Héros, le Vieux Sage, la Mère. On la retrouve dans les mythes, les contes et les rêves.' },
+      { stems: ['individuation'], term: 'Individuation', text: 'Le mot de Jung pour le voyage d’une vie : devenir soi-même, rassembler ses parts éparses en une personne entière.' },
+      { stems: ['ego'], term: 'Ego', text: 'Le centre de la conscience quotidienne : le « je » qui planifie et décide. Il n’est qu’une partie de la personnalité entière.' },
+      { stems: ['soi$'], term: 'Le Soi', text: 'Le centre et la totalité de toute la psyché, consciente et inconsciente. Jung le représentait souvent comme un mandala.' },
+    ],
+    practice: [
+      'Pensez à une qualité chez les autres qui vous irrite. Une part silencieuse de vous pourrait-elle la reconnaître ? Observez simplement, sans juger.',
+      'Quelle tendresse et quelle force vivent en vous ? Laquelle montrez-vous le moins ?',
+      'Rappelez-vous un moment où vous avez simplement su ce qui était juste. Comment sonnait cette voix intérieure ?',
+      'Quel petit pas vers l’inconnu pourriez-vous faire cette semaine ?',
+      'Comment votre force pourrait-elle aider quelqu’un aujourd’hui ?',
+      'Que pouvez-vous lâcher une minute ? Reposez-vous dans le silence et voyez ce qui reste.',
+      'Qu’avez-vous cherché hors de vous que vous portez déjà en vous ?',
+    ],
+  },
+  de: {
+    ui: {
+      practice: 'Probiere es selbst',
+      practiceTitle: 'Eine Pause für dich',
+      listen: 'Anhören',
+      stopListen: 'Stopp',
+      map: 'Karte',
+      mapTitle: 'Der Weg',
+      mapHint: 'Wähle eine Stufe, um dorthin zurückzukehren',
+      soft: 'Sanfter Modus',
+      softTitle: 'Sanftes Lesen: keine Bewegung, größere Schrift, leisere Musik',
+      diary: 'Mein Weg',
+      diaryTitle: 'Deine Notizen unterwegs',
+      diaryEmpty: 'Noch nichts geschrieben. Jede Stufe hat eine Pause mit einer Frage — deine Antworten bleiben hier, nur auf diesem Gerät.',
+      close: 'Schließen',
+      inhale: 'Einatmen',
+      hold: 'Halten',
+      exhale: 'Ausatmen',
+      notePh: 'Schreibe einen Gedanken, wenn du magst. Er bleibt nur auf diesem Gerät.',
+      saved: 'Auf diesem Gerät gespeichert',
+      letterTitle: 'Ein Brief an dich selbst',
+      letterText: 'Schreibe ein paar freundliche Worte an den Menschen, der du in einem Monat sein wirst. Eine Erinnerung mit deinem Brief kommt in deinen Kalender.',
+      letterPh: 'Liebes Ich …',
+      letterBtn: 'In einem Monat erinnern',
+      card: 'Zitatkarte speichern',
+      share: 'Die Reise teilen',
+      copied: 'Link kopiert',
+      light: 'Licht',
+      stageWord: 'Stufe',
+      breathHint: 'Lass deinen Atem dem Herzen folgen. Vier Zähler ein, sechs aus.',
+    },
+    gloss: [
+      { stems: ['Schatten'], term: 'Schatten', text: 'In Jungs Psychologie die Teile von uns, die wir nicht angenommen oder bemerkt haben. Ihnen behutsam zu begegnen macht ganzer, nicht schlechter.' },
+      { stems: ['Anima', 'Animus'], term: 'Anima & Animus', text: 'Die inneren „weiblichen“ und „männlichen“ Seiten der Psyche. Jung sah in ihnen innere Führer, die uns ins Gleichgewicht helfen.' },
+      { stems: ['Archetyp'], term: 'Archetyp', text: 'Ein universelles Bild, das Menschen aller Kulturen teilen: der Held, der Weise Alte, die Mutter. Es zeigt sich in Mythen, Märchen und Träumen.' },
+      { stems: ['Individuation'], term: 'Individuation', text: 'Jungs Wort für die lebenslange Reise, man selbst zu werden: die verstreuten Teile zu einem ganzen Menschen zu sammeln.' },
+      { stems: ['Ego'], term: 'Ego', text: 'Das Zentrum des Alltagsbewusstseins — das „Ich“, das plant und entscheidet. Es ist nur ein Teil der ganzen Persönlichkeit.' },
+      { stems: ['Selbst'], term: 'Das Selbst', text: 'Mitte und Ganzheit der gesamten Psyche, bewusst und unbewusst. Jung stellte es oft als Mandala dar.' },
+    ],
+    practice: [
+      'Denke an eine Eigenschaft anderer, die dich ärgert. Könnte ein stiller Teil von dir sie wiedererkennen? Bemerke es einfach, ohne zu urteilen.',
+      'Welche Zärtlichkeit und welche Stärke leben in dir? Welche zeigst du seltener?',
+      'Erinnere dich an einen Moment, in dem du einfach wusstest, was richtig ist. Wie klang diese innere Stimme?',
+      'Welchen kleinen Schritt ins Unbekannte könntest du diese Woche gehen?',
+      'Wie könnte deine Stärke heute jemand anderem helfen?',
+      'Was kannst du für eine Minute loslassen? Ruhe in der Stille und bemerke, was bleibt.',
+      'Was hast du außerhalb von dir gesucht, das du längst in dir trägst?',
+    ],
+  },
+  pt: {
+    ui: {
+      practice: 'Experimente',
+      practiceTitle: 'Uma pausa para você',
+      listen: 'Ouvir',
+      stopListen: 'Parar',
+      map: 'Mapa',
+      mapTitle: 'O caminho',
+      mapHint: 'Escolha uma etapa para voltar a ela',
+      soft: 'Modo suave',
+      softTitle: 'Leitura suave: sem movimento, texto maior, música mais baixa',
+      diary: 'Meu caminho',
+      diaryTitle: 'Suas notas pelo caminho',
+      diaryEmpty: 'Nada escrito ainda. Cada etapa tem uma pausa com uma pergunta; suas respostas ficam aqui, só neste dispositivo.',
+      close: 'Fechar',
+      inhale: 'Inspire',
+      hold: 'Pausa',
+      exhale: 'Expire',
+      notePh: 'Escreva um pensamento, se quiser. Ele fica só neste dispositivo.',
+      saved: 'Salvo neste dispositivo',
+      letterTitle: 'Uma carta para você',
+      letterText: 'Escreva algumas palavras gentis a quem você será daqui a um mês. Um lembrete com sua carta será adicionado ao seu calendário.',
+      letterPh: 'Querido eu…',
+      letterBtn: 'Lembrar em um mês',
+      card: 'Salvar cartão com citação',
+      share: 'Compartilhar a jornada',
+      copied: 'Link copiado',
+      light: 'Luz',
+      stageWord: 'Etapa',
+      breathHint: 'Deixe a respiração seguir o coração. Quatro tempos para inspirar, seis para expirar.',
+    },
+    gloss: [
+      { stems: ['sombra'], term: 'Sombra', text: 'Na psicologia de Jung, as partes de nós que não aceitamos ou não notamos. Encontrá-las com delicadeza nos torna mais inteiros, não piores.' },
+      { stems: ['anima', 'animus'], term: 'Anima e Animus', text: 'Os lados interiores “feminino” e “masculino” da psique. Jung os via como guias internos que ajudam a nos equilibrar.' },
+      { stems: ['arquétip'], term: 'Arquétipo', text: 'Uma imagem universal comum a pessoas de várias culturas: o Herói, o Velho Sábio, a Mãe. Aparece em mitos, contos e sonhos.' },
+      { stems: ['individua'], term: 'Individuação', text: 'A palavra de Jung para a jornada de uma vida de tornar-se si mesmo: reunir as partes dispersas numa pessoa inteira.' },
+      { stems: ['ego'], term: 'Ego', text: 'O centro da consciência cotidiana: o “eu” que faz planos e decide. É apenas uma parte da personalidade inteira.' },
+      { stems: ['si-mesmo'], term: 'O Si-mesmo', text: 'O centro e a totalidade de toda a psique, consciente e inconsciente. Jung o representava muitas vezes como um mandala.' },
+    ],
+    practice: [
+      'Pense em uma qualidade nos outros que irrita você. Uma parte quieta de você poderia reconhecê-la? Apenas perceba, sem julgar.',
+      'Que ternura e que força vivem em você? Qual das duas você mostra menos?',
+      'Lembre-se de um momento em que você simplesmente soube o que era certo. Como era essa voz interior?',
+      'Qual pequeno passo rumo ao desconhecido você poderia dar esta semana?',
+      'Como a sua força poderia ajudar alguém hoje?',
+      'O que você pode soltar por um minuto? Descanse no silêncio e perceba o que fica.',
+      'O que você procurava fora que já carrega dentro de si?',
+    ],
+  },
+};
+
+export function extraFor(code: string): Extra {
+  const e = extras[code] ?? extras.en;
+  return { ui: { ...extras.en.ui, ...e.ui }, gloss: e.gloss, practice: e.practice };
+}

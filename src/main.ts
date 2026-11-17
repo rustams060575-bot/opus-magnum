@@ -12,6 +12,8 @@ import '@fontsource/inter/latin-600.css';
 import '@fontsource/inter/cyrillic-400.css';
 import '@fontsource/inter/cyrillic-500.css';
 import '@fontsource/inter/cyrillic-600.css';
+import '@fontsource/inter/cyrillic-ext-400.css';
+import '@fontsource/inter/cyrillic-ext-500.css';
 import '@fontsource/libre-franklin/latin-500.css';
 import '@fontsource/libre-franklin/latin-600.css';
 import '@fontsource/cormorant-garamond/latin-600.css';
@@ -26,18 +28,23 @@ import '@fontsource/cormorant-garamond/cyrillic-500.css';
 import '@fontsource/cormorant-garamond/cyrillic-500-italic.css';
 import 'lenis/dist/lenis.css';
 import './styles/main.css';
+import './styles/extra.css';
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 
-import { detectLang, locales, order, saveLang } from './i18n';
+import { detectLang, extraFor, locales, order, saveLang } from './i18n';
 import { startBeat, setBpm, registerPulse, registerGlow } from './core/beat';
 import { Particles } from './core/particles';
-import { bindSoundButton, initAudio, primeIntroMusic, startAudio } from './core/audio';
+import { bindSoundButton, initAudio, primeIntroMusic, setBrightness, setSoftVolume, startAudio } from './core/audio';
 import { renderApp } from './scenes/render';
 import { destroyScenes, initScenes, playIntro, sceneStart, type Hooks } from './scenes/animate';
 import { scenes, type Mood } from './scenes/config';
+import { isSoft, setSoft } from './core/prefs';
+import { initPanel, openDiary, openMap, openPractice } from './ui/panel';
+import { initGlossaryDismiss } from './ui/glossary';
+import { stopSpeech, toggleSpeech, speechSupported } from './ui/speech';
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
@@ -95,20 +102,55 @@ function paintRail(n: number) {
 }
 
 function buildLangButtons() {
-  const html = order
+  const row = order
     .map((c) => `<button type="button" data-lang="${c}" aria-pressed="${c === lang}" lang="${c}" title="${locales[c].name}">${locales[c].label}</button>`)
     .join('');
-  $('#lang').innerHTML = html;
   const pl = document.getElementById('pre-langs');
-  if (pl) pl.innerHTML = html;
+  if (pl) pl.innerHTML = row;
+  const list = order
+    .map(
+      (c) =>
+        `<li><button type="button" role="option" data-lang="${c}" aria-selected="${c === lang}" aria-pressed="${c === lang}" lang="${c}"><b>${locales[c].label}</b>${locales[c].name}</button></li>`,
+    )
+    .join('');
+  $('#lang').innerHTML = `<button type="button" class="lang__cur" aria-haspopup="listbox" aria-expanded="false" aria-label="${locales[lang].ui.chooseLanguage}">${locales[lang].label}<i></i></button><ul class="lang__list" role="listbox">${list}</ul>`;
+  const wrap = $('#lang');
+  const cur = wrap.querySelector<HTMLButtonElement>('.lang__cur')!;
+  cur.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = wrap.classList.toggle('open');
+    cur.setAttribute('aria-expanded', String(open));
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) =>
-    b.addEventListener('click', () => switchLang(b.dataset.lang!)),
+    b.addEventListener('click', () => {
+      wrap.classList.remove('open');
+      switchLang(b.dataset.lang!);
+    }),
   );
 }
+addEventListener('click', () => $('#lang').classList.remove('open'));
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') $('#lang').classList.remove('open');
+});
 
 function paintSoundLabel(on = document.getElementById('snd')?.classList.contains('on') ?? false) {
   const t = document.getElementById('pre-snd-t');
   if (t) t.textContent = on ? locales[lang].ui.musicOn : locales[lang].ui.musicOff;
+}
+
+function paintUiLabels() {
+  const X = extraFor(lang).ui;
+  const m = document.getElementById('map-btn');
+  const sf = document.getElementById('soft-btn');
+  if (m) {
+    m.setAttribute('aria-label', X.map);
+    m.title = X.map;
+  }
+  if (sf) {
+    sf.setAttribute('aria-label', X.soft);
+    sf.title = X.softTitle;
+    sf.setAttribute('aria-pressed', String(isSoft()));
+  }
 }
 
 function paintPreloaderText() {
@@ -116,6 +158,7 @@ function paintPreloaderText() {
   const label = document.getElementById('pre-label');
   const enterLabel = document.querySelector('#pre-enter .pre__label');
   paintSoundLabel();
+  paintUiLabels();
   if (label) label.textContent = L.ui.loading;
   if (enterLabel) enterLabel.textContent = L.ui.enter;
   document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
@@ -156,6 +199,12 @@ async function switchLang(code: string) {
     mount();
     return;
   }
+  stopSpeech();
+  await remount();
+}
+
+/** Rebuild the scenes in place (language or gentle-mode change) and return to the same scene. */
+async function remount() {
   const keep = currentId;
   await gsap.to(app, { opacity: 0, duration: 0.35, ease: 'power1.in' });
   destroyScenes();
@@ -166,13 +215,64 @@ async function switchLang(code: string) {
   gsap.to(app, { opacity: 1, duration: 0.6, ease: 'power1.out' });
 }
 
+async function toggleSoft() {
+  const v = !isSoft();
+  setSoft(v);
+  setSoftVolume(v);
+  stopSpeech();
+  paintUiLabels();
+  if (entered) await remount();
+  else {
+    destroyScenes();
+    mount();
+  }
+}
+
 /* ---------------- overall progress bar ---------------- */
 ScrollTrigger.create({
   trigger: document.body,
   start: 0,
   end: 'max',
-  onUpdate: (s) => $('#rail').style.setProperty('--p', s.progress.toFixed(4)),
+  onUpdate: (s) => {
+    $('#rail').style.setProperty('--p', s.progress.toFixed(4));
+    // light conquers darkness: the screen warms and the music opens up as the journey advances
+    $('#dawn').style.opacity = (Math.pow(s.progress, 1.25) * 0.62).toFixed(3);
+    setBrightness(s.progress);
+  },
 });
+
+/* ---------------- the visitor's own tools: practice, diary, map, listening ---------------- */
+initPanel({
+  L: () => locales[lang],
+  X: () => extraFor(lang),
+  lang: () => lang,
+  stop: () => lenis.stop(),
+  start: () => {
+    if (entered) lenis.start();
+  },
+  goto: (id) => {
+    const y = sceneStart(id);
+    if (y != null) lenis.scrollTo(y, { duration: 2.2 });
+  },
+  current: () => railStage,
+});
+initGlossaryDismiss();
+app.addEventListener('click', (e) => {
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-practice], [data-listen], [data-diary], [data-map]');
+  if (!t) return;
+  if (t.dataset.practice) openPractice(Number(t.dataset.practice));
+  else if (t.dataset.diary !== undefined) openDiary();
+  else if (t.dataset.map !== undefined) openMap();
+  else if (t.dataset.listen) {
+    const n = Number(t.dataset.listen);
+    const st = locales[lang].stages[n - 1];
+    const X = extraFor(lang).ui;
+    toggleSpeech(t, [st.title, ...(st.q ? [st.q] : []), ...st.p], lang, [X.listen, X.stopListen]);
+  }
+});
+document.getElementById('map-btn')?.addEventListener('click', () => openMap());
+document.getElementById('soft-btn')?.addEventListener('click', () => void toggleSoft());
+if (!speechSupported) document.documentElement.classList.add('no-speech');
 
 /* ---------------- cursor light ---------------- */
 {
@@ -268,6 +368,8 @@ async function boot() {
   registerPulse($('#pre-enter'), 0.03, true);
   registerGlow($('.pre__ring'), 0.22, 0.72, true);
   $('#grain').style.backgroundImage = `url(${import.meta.env.BASE_URL}img/grain.png)`;
+  setSoft(isSoft());
+  setSoftVolume(isSoft());
   await preload();
   const ui = $('#pre-ui');
   ui.setAttribute('aria-hidden', 'false');

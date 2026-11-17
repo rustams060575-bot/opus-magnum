@@ -3,6 +3,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { splitChars, splitMaskWords, splitWords } from '../core/split';
 import { clearPulses, onBeatFrame, onLub, registerGlow, registerPulse } from '../core/beat';
 import { Smoke } from '../core/smoke';
+import { isSoft } from '../core/prefs';
+import { extraFor } from '../i18n';
+import { markTerms } from '../ui/glossary';
 import { scenes, type Mood, type SceneDef } from './config';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -164,9 +167,12 @@ export function initScenes(hooks: Hooks): void {
     },
     (ctx) => {
       const { desktop, mobile, reduce } = ctx.conditions as Record<string, boolean>;
-      document.documentElement.classList.toggle('reduced', !!reduce);
+      
       clearPulses();
-      const mode: Mode = reduce ? 'reduce' : desktop ? 'desktop' : 'mobile';
+      const soft = isSoft();
+      document.documentElement.classList.toggle('soft', soft);
+      document.documentElement.classList.toggle('reduced', !!reduce || soft);
+      const mode: Mode = reduce || soft ? 'reduce' : desktop ? 'desktop' : 'mobile';
 
       $$('.scene').forEach((sec) => {
         if (mode !== 'reduce' && sec.closest('.stack')) warm(sec);
@@ -457,6 +463,10 @@ function buildStage(sec: HTMLElement, mode: Mode) {
   const title = $('.st__title', sec)!;
   const titleWords = splitMaskWords(title);
   const cite = $('.st__cite', sec);
+  const act = $('.st__act', sec);
+  $('.st__p', sec)?.classList.add('dropcap');
+  const lang = document.documentElement.lang;
+  markTerms(words, extraFor(lang).gloss, lang);
   const art = $$('.st__art > *', sec);
   const bgImg = $('.bgimg', sec);
 
@@ -504,12 +514,14 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     $$('[data-par]', sec).forEach((p) => tl.fromTo(p, { yPercent: 5 }, { yPercent: -5, duration: T, ease: 'none' }, 0));
     tl.fromTo(titleWords, { yPercent: 118 }, { yPercent: 0, duration: 1.2, stagger: 0.08, ease: 'expo.out' }, 0.05);
     tl.to(words, { opacity: 1, duration: 0.55, ease: 'none', stagger: { each: 6 / words.length } }, 2.3);
-    if (cite) tl.from(cite, { autoAlpha: 0, y: 12, duration: 0.9 }, 8.7);
+    const late = [cite, act].filter(Boolean) as HTMLElement[];
+    if (late.length) tl.from(late, { autoAlpha: 0, y: 12, duration: 0.9, stagger: 0.25 }, 8.7);
     stageExtras(n, sec, tl, T);
     // the text leaves as slowly as it arrived: dissolving word by word, in reading order, while drifting up
     const exitAt = 10.4;
     tl.to(words, { opacity: 0, duration: 0.6, ease: 'none', stagger: { each: 3.6 / words.length } }, exitAt);
     tl.to([title, cite].filter(Boolean), { autoAlpha: 0, duration: 1.6, ease: 'none' }, exitAt + 2.2);
+    if (act) tl.to(act, { autoAlpha: 0, duration: 1.2, ease: 'none' }, exitAt + 3.0);
     tl.to($('.st__text', sec), { yPercent: -5, duration: T - exitAt, ease: 'none' }, exitAt);
     tl.to(art, { opacity: 0.35, scale: 1.05, duration: 2.4, ease: 'none' }, T - 2.4);
     cover(sec, mode);
@@ -549,6 +561,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     });
   });
   if (cite) gsap.from(cite, { autoAlpha: 0, y: 10, scrollTrigger: { trigger: cite, start: 'top 94%', toggleActions: 'play none none reverse' } });
+  if (act) gsap.from(act, { autoAlpha: 0, y: 10, scrollTrigger: { trigger: act, start: 'top 96%', toggleActions: 'play none none reverse' } });
   if (bgImg) gsap.fromTo(bgImg, { scale: 1.12 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: true } });
 }
 
