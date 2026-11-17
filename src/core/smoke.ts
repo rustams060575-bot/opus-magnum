@@ -7,8 +7,13 @@ import gsap from 'gsap';
  */
 const VERT = `attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
 
+// highp matters: a 16-bit mediump hash turns the noise into flicker/garbage on phones and some laptop GPUs
 const FRAG = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 uniform vec2 r;
 uniform float t;
 uniform float b;
@@ -30,12 +35,14 @@ void main(){
   vec2 q = vec2(fbm(p + tt), fbm(p + vec2(5.2, 1.3) - tt));
   vec2 w = vec2(fbm(p + 3.0 * q + vec2(1.7, 9.2) + tt * 1.4), fbm(p + 3.0 * q + vec2(8.3, 2.8) - tt * 1.2));
   float f = fbm(p + 3.0 * w);
-  float s = smoothstep(0.32, 0.92, f);
+  float s = smoothstep(0.30, 0.78, f);
   float d = length(uv - 0.5);
   float vig = smoothstep(0.25, 0.95, d);
-  float dens = s * (0.52 + 0.4 * b) + vig * 0.32;
+  float dens = s * (0.78 + 0.4 * b) + vig * 0.3;
   vec3 smokeCol = mix(vec3(0.34, 0.06, 0.04), vec3(0.05, 0.0, 0.0), s);
-  gl_FragColor = vec4(mix(vec3(1.0), smokeCol, clamp(dens, 0.0, 0.95)), 1.0);
+  // premultiplied alpha: plain alpha compositing instead of a (costly) multiply blend mode
+  float a = clamp(dens, 0.0, 0.92);
+  gl_FragColor = vec4(smokeCol * a, a);
 }`;
 
 export class Smoke {
@@ -51,7 +58,7 @@ export class Smoke {
   private readonly scale = 0.42;
 
   constructor(private canvas: HTMLCanvasElement) {
-    this.gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
+    this.gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, powerPreference: 'low-power' });
     if (!this.gl) {
       canvas.style.display = 'none';
       this.io = new IntersectionObserver(() => undefined);
@@ -75,6 +82,12 @@ export class Smoke {
     }
     this.prog = prog;
     gl.useProgram(prog);
+    gl.clearColor(0, 0, 0, 0);
+    gl.disable(gl.BLEND);
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      canvas.style.display = 'none';
+    });
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -112,7 +125,13 @@ export class Smoke {
     gl.uniform1f(this.u.t, (performance.now() - this.t0) / 1000);
     gl.uniform1f(this.u.b, this.beat);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // reveal the canvas only after a frame has really been drawn (never show an undefined buffer)
+    if (!this.ready) {
+      this.ready = true;
+      this.canvas.classList.add('ready');
+    }
   }
+  private ready = false;
 
   destroy() {
     gsap.ticker.remove(this.fn);

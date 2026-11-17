@@ -1,5 +1,5 @@
 import type { Locale } from '../i18n';
-import { img, frameUrl, frameBg, ROMAN, scenes, type SceneDef, type HeartLayer } from './config';
+import { img, frameUrl, frameBg, cutUrl, bgUrl, cutAspect, ROMAN, scenes, type SceneDef, type HeartLayer } from './config';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
@@ -11,24 +11,43 @@ function hero(s: Extract<SceneDef, { type: 'hero' }>, L: Locale): string {
   <div class="hero__redpulse"></div>
   <div class="hero__shade"></div>
   <div class="hero__ripples" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-  <div class="hero__heartwrap"><div class="hero__heart"><img class="hh-base" src="${img('heart-lava')}" alt="" decoding="async"><img class="hh-lava" src="${img('heart-lava')}" alt="" decoding="async"></div></div>
+  <div class="hero__halo" aria-hidden="true"></div>
+  <div class="hero__heartwrap"><div class="hero__heart">
+    <img class="hh-base" src="${cutUrl('hero-heart')}" alt="" decoding="async">
+    <img class="hh-lava" src="${cutUrl('hero-heart-glow')}" alt="" decoding="async">
+  </div></div>
   <div class="hero__flash"></div>
   <div class="hero__flood"></div>
   <div class="hero__cv">
     <div class="hero__content">
       <p class="hero__tagline">${esc(L.hero.tagline)}</p>
-      <h1 class="hero__title">Opus Magnum</h1>
+      <h1 class="hero__title">
+        <span class="hero__tg" aria-hidden="true"><span class="hero__titleglow">Opus Magnum</span></span>
+        <span class="hero__tt">Opus Magnum</span>
+      </h1>
       <blockquote class="hero__quote">
         <p>${esc(L.hero.quote)}</p>
         <cite>${esc(L.hero.cite)}</cite>
       </blockquote>
     </div>
   </div>
+  <div class="hero__bar hero__bar--t" aria-hidden="true"></div>
+  <div class="hero__bar hero__bar--b" aria-hidden="true"></div>
   <div class="hero__hint"><span>${esc(L.ui.scroll)}</span><i></i></div>
 </section>`;
 }
 
 function heartLayer(l: HeartLayer, i: number): string {
+  if (l.kind === 'cut') {
+    const ar = cutAspect(l.src);
+    return `
+<figure class="hl hl--cut" data-i="${i}" style="--glow:${l.glow};--bg:${frameBg(l.src)};--ar:${ar}">
+  <img class="hc-bg" src="${bgUrl(l.src)}" alt="" loading="lazy" decoding="async">
+  <i class="hc-halo"></i>
+  <div class="hc-rig"><img class="hc-heart" src="${cutUrl(l.src)}" alt="" loading="lazy" decoding="async"></div>
+  <i class="hc-vig"></i>
+</figure>`;
+  }
   if (l.kind === 'frame') {
     return `
 <figure class="hl hl--frame" data-i="${i}" style="--glow:${l.glow};--bg:${frameBg(l.src)};--ms:${l.ms ?? 1}">

@@ -20,7 +20,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 
 import { detectLang, locales, order, saveLang } from './i18n';
-import { startBeat, setBpm, registerPulse } from './core/beat';
+import { startBeat, setBpm, registerPulse, registerGlow } from './core/beat';
 import { Particles } from './core/particles';
 import { bindSoundButton, initAudio, startAudio } from './core/audio';
 import { renderApp } from './scenes/render';
@@ -97,7 +97,7 @@ function buildLangButtons() {
 function paintPreloaderText() {
   const L = locales[lang];
   const label = document.getElementById('pre-label');
-  const enterLabel = document.querySelector('#pre-enter span');
+  const enterLabel = document.querySelector('#pre-enter .pre__label');
   if (label) label.textContent = L.ui.loading;
   if (enterLabel) enterLabel.textContent = L.ui.enter;
   document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
@@ -159,7 +159,7 @@ ScrollTrigger.create({
 /* ---------------- cursor light ---------------- */
 {
   const beam = $('#beam i');
-  registerPulse(beam, 0.05, true);
+  registerPulse(beam, 0.04, true, [0.62, 0.38]);
   const fine = matchMedia('(pointer: fine)').matches;
   gsap.set(beam, { x: innerWidth * 0.5, y: innerHeight * 0.45 });
   if (fine) {
@@ -241,8 +241,11 @@ async function boot() {
   mount();
   // the intro already breathes: the title and the Enter button pulse on the heartbeat clock
   startBeat();
-  registerPulse($('.pre__mark'), 0.022, true);
-  registerPulse($('#pre-enter'), 0.035, true);
+  registerPulse($('.pre__t'), 0.02, true);
+  registerGlow($('.pre__g'), 0.28, 0.62, true);
+  registerPulse($('#pre-enter'), 0.03, true);
+  registerGlow($('.pre__ring'), 0.22, 0.72, true);
+  $('#grain').style.backgroundImage = `url(${import.meta.env.BASE_URL}img/grain.png)`;
   await preload();
   const ui = $('#pre-ui');
   ui.setAttribute('aria-hidden', 'false');

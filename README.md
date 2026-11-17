@@ -49,7 +49,13 @@ The switch buttons, `<html lang>`, saved choice and `?lang=fr` all pick it up au
 Vercel: import the repo, framework preset *Vite*, build `npm run build`, output `dist`.
 GitHub Pages: publish the `dist` folder (e.g. with a Pages workflow).
 
-## Still to add (from the Figma file)
+## Motion design notes
 
-Heart images from frames `63:75`, `63:76`, `63:80`, `64:116`, `64:117` and the epilogue backgrounds `65:132`, `65:133`
-could not be exported yet (Figma MCP call limit on the Starter plan). They slot straight into `config.ts` once exported.
+- **Stacked scenes.** Every scene is a `position: sticky` layer; the next one slides over it while the previous sinks back and darkens
+  (`--cover`), with layered parallax (background, artwork and text travel at different speeds as a scene lands).
+- **Layered hearts.** `python scripts/make_cutouts.py` cuts each heart out of its frame (rembg) and builds a blurred ambient copy:
+  ambient light → glow → heart cut-out → vignette. Pairs transform through an iris that opens from the heart's centre.
+- **Performance rule.** Nothing animates anything except `transform` and `opacity` (the heartbeat included).
+  Filters, shadows and blend modes are never driven per frame. Only scenes near the viewport get `will-change`.
+- **Type.** Titles rise out of overflow-hidden slots (masked words / letters); body copy lights up word by word and leaves in the same order.
+- **Pipeline:** `prepare_frames.py` (frames from Figma exports) → `make_cutouts.py` (cut-outs + ambient) → `optimize_images.py` (other art).

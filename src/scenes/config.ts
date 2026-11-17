@@ -1,9 +1,14 @@
 import type { ParticleMode } from '../core/particles';
 import frameMeta from './frames.json';
+import cutMeta from './cutouts.json';
 
 /** Public-folder image helper (works on Vercel root and GitHub Pages sub-path). */
 export const img = (name: string): string => `${import.meta.env.BASE_URL}img/${name}.webp`;
 export const frameUrl = (name: string): string => img(`frames/${name}`);
+export const cutUrl = (name: string): string => img(`cut/${name}`);
+export const bgUrl = (name: string): string => img(`bg/${name}`);
+/** width / height of a trimmed cut-out */
+export const cutAspect = (name: string): number => (cutMeta as Record<string, { ar: number }>)[name]?.ar ?? 0.75;
 export const frameBg = (name: string): string =>
   (frameMeta as Record<string, { bg: string }>)[name]?.bg ?? '#050506';
 
@@ -18,11 +23,12 @@ export interface Mood {
 export interface HeartLayer {
   src: string;
   /**
+   * cut    = the heart cut out of its frame, layered over a blurred ambient copy of the frame
    * frame  = a full 16:10 Figma frame shown edge to edge (src is a name in public/img/frames)
    * portal = image cropped to a glowing oval (light backgrounds)
    * soft   = feathered edges on black (dark backgrounds)
    */
-  kind: 'frame' | 'portal' | 'soft';
+  kind: 'cut' | 'frame' | 'portal' | 'soft';
   glow: string;
   /** optional full-bleed backdrop that travels with this layer */
   behind?: string;
@@ -57,8 +63,8 @@ export const scenes: SceneDef[] = [
     id: 'heart-1',
     dwell: 2.4,
     layers: [
-      { src: 'h1-chained', kind: 'frame', glow: '#b8352c', ms: 1.0 },
-      { src: 'h1-caged', kind: 'frame', glow: '#e0a24a', ms: 1.0 },
+      { src: 'h1-chained', kind: 'cut', glow: '#b8352c', ms: 1.0 },
+      { src: 'h1-caged', kind: 'cut', glow: '#e0a24a', ms: 1.0 },
     ],
     mood: M(88, 'ember', '#ff4a2a'),
   },
@@ -70,7 +76,7 @@ export const scenes: SceneDef[] = [
     id: 'heart-2',
     dwell: 2.4,
     layers: [
-      { src: 'h2-lava', kind: 'frame', glow: '#ff6a1f', ms: 1.0 },
+      { src: 'h2-lava', kind: 'cut', glow: '#ff6a1f', ms: 1.0 },
       { src: 'heart-stone', kind: 'soft', glow: '#ffb44a', behind: 'crescent' },
     ],
     mood: M(82, 'ember', '#ff7a2a'),
@@ -83,8 +89,8 @@ export const scenes: SceneDef[] = [
     id: 'heart-3',
     dwell: 2.4,
     layers: [
-      { src: 'h3-hall', kind: 'frame', glow: '#ffc766', ms: 0.9 },
-      { src: 'h3-gold', kind: 'frame', glow: '#e8b84a', ms: 0.95 },
+      { src: 'h3-hall', kind: 'cut', glow: '#ffc766', ms: 0.9 },
+      { src: 'h3-gold', kind: 'cut', glow: '#e8b84a', ms: 0.95 },
     ],
     mood: M(70, 'gold', '#ffc766'),
   },
@@ -96,8 +102,8 @@ export const scenes: SceneDef[] = [
     id: 'heart-4',
     dwell: 2.4,
     layers: [
-      { src: 'h4-fire', kind: 'frame', glow: '#ff7a2e', ms: 0.8 },
-      { src: 'h4-book', kind: 'frame', glow: '#ffb04a', ms: 0.8 },
+      { src: 'h4-fire', kind: 'cut', glow: '#ff7a2e', ms: 0.8 },
+      { src: 'h4-book', kind: 'cut', glow: '#ffb04a', ms: 0.8 },
     ],
     mood: M(72, 'ember', '#ff8a3a'),
   },
@@ -109,8 +115,8 @@ export const scenes: SceneDef[] = [
     id: 'heart-5',
     dwell: 2.4,
     layers: [
-      { src: 'h5-ecg', kind: 'frame', glow: '#ff3a2a', ms: 0.8 },
-      { src: 'h5-flame', kind: 'frame', glow: '#ff6a3a', ms: 0.8 },
+      { src: 'h5-ecg', kind: 'cut', glow: '#ff3a2a', ms: 0.8 },
+      { src: 'h5-flame', kind: 'cut', glow: '#ff6a3a', ms: 0.8 },
     ],
     mood: M(78, 'ember', '#ff5a3a'),
   },
@@ -122,8 +128,8 @@ export const scenes: SceneDef[] = [
     id: 'heart-6',
     dwell: 2.4,
     layers: [
-      { src: 'h6-lapis', kind: 'frame', glow: '#6ab0ff', ms: 0.8 },
-      { src: 'h6-blue', kind: 'frame', glow: '#8ac4ff', ms: 0.9 },
+      { src: 'h6-lapis', kind: 'cut', glow: '#6ab0ff', ms: 0.8 },
+      { src: 'h6-blue', kind: 'cut', glow: '#8ac4ff', ms: 0.9 },
     ],
     mood: M(60, 'star', '#6ab0ff'),
   },
@@ -135,8 +141,8 @@ export const scenes: SceneDef[] = [
     id: 'heart-7',
     dwell: 2.4,
     layers: [
-      { src: 'h7-white', kind: 'frame', glow: '#ffd37a', ms: 0.8 },
-      { src: 'h7-flowers', kind: 'frame', glow: '#ff4d5e', ms: 0.8 },
+      { src: 'h7-white', kind: 'cut', glow: '#ffd37a', ms: 0.8 },
+      { src: 'h7-flowers', kind: 'cut', glow: '#ff4d5e', ms: 0.8 },
     ],
     mood: M(56, 'gold', '#ffd37a', 'dark'),
   },

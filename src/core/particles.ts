@@ -58,7 +58,8 @@ export class Particles {
   }
 
   private resize() {
-    this.dpr = Math.min(devicePixelRatio || 1, 1.5);
+    // soft glows don't need pixel density: half-resolution cuts fill and texture-upload cost by 4x
+    this.dpr = 0.5;
     this.w = innerWidth;
     this.h = innerHeight;
     this.canvas.width = this.w * this.dpr;
@@ -111,6 +112,7 @@ export class Particles {
     if (this.level.v < 0.01) return;
     ctx.globalCompositeOperation = 'lighter';
     const [cr, cg, cb] = cfg.color.map(Math.round);
+    this.ensureSprite(cr, cg, cb);
     for (let i = 0; i < this.ps.length; i++) {
       const p = this.ps[i];
       p.life += dt;
@@ -126,13 +128,29 @@ export class Particles {
       const a = cfg.alpha * fade * tw * this.level.v;
       if (a < 0.01) continue;
       const rad = p.r * 3.2;
-      const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad);
-      grd.addColorStop(0, `rgba(${cr},${cg},${cb},${a})`);
-      grd.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
-      ctx.fill();
+      // one pre-rendered soft sprite, stamped per particle (a gradient per particle per frame was the old cost)
+      ctx.globalAlpha = Math.min(1, a);
+      ctx.drawImage(this.sprite, p.x - rad, p.y - rad, rad * 2, rad * 2);
     }
+    ctx.globalAlpha = 1;
+  }
+
+  private sprite = document.createElement('canvas');
+  private spriteKey = '';
+
+  /** (Re)draws the shared glow sprite only when the tint has visibly changed. */
+  private ensureSprite(r: number, g: number, b: number) {
+    const key = `${r >> 3},${g >> 3},${b >> 3}`;
+    if (key === this.spriteKey) return;
+    this.spriteKey = key;
+    const s = this.sprite;
+    s.width = s.height = 64;
+    const c = s.getContext('2d')!;
+    const grd = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grd.addColorStop(0, `rgba(${r},${g},${b},1)`);
+    grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    c.clearRect(0, 0, 64, 64);
+    c.fillStyle = grd;
+    c.fillRect(0, 0, 64, 64);
   }
 }

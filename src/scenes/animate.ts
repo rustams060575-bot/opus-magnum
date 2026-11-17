@@ -1,7 +1,7 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { splitChars, splitWords } from '../core/split';
-import { clearPulses, onBeatFrame, onLub, registerPulse } from '../core/beat';
+import { splitChars, splitMaskWords, splitWords } from '../core/split';
+import { clearPulses, onBeatFrame, onLub, registerGlow, registerPulse } from '../core/beat';
 import { Smoke } from '../core/smoke';
 import { scenes, type Mood, type SceneDef } from './config';
 
@@ -40,6 +40,7 @@ function cover(sec: HTMLElement, mode: Mode) {
   gsap.to(sec, {
     '--cover': 0.82,
     scale: mode === 'desktop' ? 0.93 : 0.96,
+    yPercent: mode === 'desktop' ? -3 : -1.5,
     ease: 'none',
     scrollTrigger: {
       trigger: stackOf(sec),
@@ -48,6 +49,46 @@ function cover(sec: HTMLElement, mode: Mode) {
       scrub: true,
       invalidateOnRefresh: true,
     },
+  });
+}
+
+/**
+ * Layer parallax while a scene slides in over the previous one: background, artwork and text
+ * travel at different speeds and settle together as the scene lands. (Containers are oversized
+ * in CSS so the lagging layers never expose a gap.)
+ */
+function enterParallax(sec: HTMLElement, mode: Mode) {
+  if (mode === 'reduce' || sec.classList.contains('hero')) return;
+  const k = mode === 'desktop' ? 1 : 0.6;
+  const parts: [string, number][] = sec.classList.contains('hs')
+    ? [['.hs__layers', 5 * k]]
+    : [
+        ['.st__bg', 4 * k],
+        ['.st__art', 9 * k],
+        ['.st__cv', 15 * k],
+      ];
+  for (const [sel, pct] of parts) {
+    const el = $(sel, sec);
+    if (!el) continue;
+    gsap.fromTo(
+      el,
+      { yPercent: pct },
+      {
+        yPercent: 0,
+        ease: 'none',
+        scrollTrigger: { trigger: stackOf(sec), start: 'top bottom', end: 'top top', scrub: true, invalidateOnRefresh: true },
+      },
+    );
+  }
+}
+
+/** Only scenes near the viewport get a GPU layer (will-change); the rest stay cheap. */
+function warm(sec: HTMLElement) {
+  ScrollTrigger.create({
+    trigger: stackOf(sec),
+    start: 'top bottom+=60%',
+    end: 'bottom top-=60%',
+    toggleClass: { targets: sec, className: 'warm' },
   });
 }
 
@@ -85,6 +126,7 @@ export function initScenes(hooks: Hooks): void {
       const mode: Mode = reduce ? 'reduce' : desktop ? 'desktop' : 'mobile';
 
       $$('.scene').forEach((sec) => {
+        if (mode !== 'reduce' && sec.closest('.stack')) warm(sec);
         if (sec.classList.contains('hero')) buildHero(sec, mode);
         else if (sec.classList.contains('hs')) buildHeart(sec, mode);
         else if (sec.classList.contains('st')) buildStage(sec, mode);
@@ -139,27 +181,57 @@ function trackActive(hooks: Hooks) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Pointer parallax (desktop, fine pointers)                           */
+/* ------------------------------------------------------------------ */
+/** Layers drift against the cursor by different amounts — cheap depth. Returns a cleanup fn. */
+function parallax(root: HTMLElement, layers: [string, number][]): () => void {
+  if (!matchMedia('(pointer: fine)').matches) return () => undefined;
+  const setters = layers.flatMap(([sel, k]) =>
+    $$(sel, root).map((el) => ({
+      k,
+      x: gsap.quickTo(el, 'x', { duration: 1.4, ease: 'power3' }),
+      y: gsap.quickTo(el, 'y', { duration: 1.4, ease: 'power3' }),
+    })),
+  );
+  const on = (e: PointerEvent) => {
+    const nx = (e.clientX / innerWidth - 0.5) * 2;
+    const ny = (e.clientY / innerHeight - 0.5) * 2;
+    for (const s of setters) {
+      s.x(nx * s.k);
+      s.y(ny * s.k);
+    }
+  };
+  addEventListener('pointermove', on, { passive: true });
+  return () => removeEventListener('pointermove', on);
+}
+
+/* ------------------------------------------------------------------ */
 /* Hero                                                                */
 /* ------------------------------------------------------------------ */
 let heroChars: HTMLElement[] = [];
 
 function buildHero(sec: HTMLElement, mode: Mode) {
-  const title = $('.hero__title', sec)!;
-  heroChars = splitChars(title);
+  heroChars = splitChars($('.hero__tt', sec)!);
+  // letters wait below their slots until the intro lifts them (set in GSAP, not CSS, so transforms don't fight)
+  if (mode !== 'reduce' && !heroShown) gsap.set(heroChars, { yPercent: 118, rotation: 6 });
   const heart = $('.hero__heart', sec)!;
-  registerPulse(heart, 0.05);
-  const off = onBeatFrame((v) => sec.style.setProperty('--b', v.toFixed(3)));
-  offs.push(off);
+  // the heart, its cracks, the red glow behind the title: all beat through transform/opacity only
+  registerPulse(heart, 0.032);
+  registerGlow($('.hh-lava', sec)!, 0.16, 0.84);
+  registerGlow($('.hero__halo', sec)!, 0.22, 0.5);
+  registerGlow($('.hero__redpulse', sec)!, 0.14, 0.5);
+  registerGlow($('.hero__titleglow', sec)!, 0.3, 0.7);
 
   // ripples travel outwards on every "lub"
   const ripples = $$('.hero__ripples i', sec);
   let ri = 0;
-  const offLub = onLub(() => {
-    if (mode === 'reduce' || !heroShown) return;
-    const r = ripples[ri++ % ripples.length];
-    gsap.fromTo(r, { scale: 0.5, opacity: 0.55 }, { scale: 2.4, opacity: 0, duration: 2.6, ease: 'power2.out' });
-  });
-  offs.push(offLub);
+  offs.push(
+    onLub(() => {
+      if (mode === 'reduce' || !heroShown) return;
+      const r = ripples[ri++ % ripples.length];
+      gsap.fromTo(r, { scale: 0.5, opacity: 0.5 }, { scale: 2.3, opacity: 0, duration: 2.6, ease: 'power2.out' });
+    }),
+  );
 
   const smokeCanvas = $<HTMLCanvasElement>('.hero__smoke', sec);
   if (smokeCanvas && mode !== 'reduce') {
@@ -167,6 +239,17 @@ function buildHero(sec: HTMLElement, mode: Mode) {
     offs.push(() => smoke.destroy());
     offs.push(onBeatFrame((v) => smoke.setBeat(v)));
   }
+  if (mode === 'desktop') {
+    offs.push(
+      parallax(sec, [
+        ['.hero__heartwrap', 22],
+        ['.hero__bg', -10],
+        ['.hero__cv', 6],
+      ]),
+    );
+  }
+  // slow camera drift on the parchment: one long GSAP tween on transform only
+  if (mode !== 'reduce') gsap.to($('.hero__bg img', sec), { scale: 1.12, xPercent: -1.2, yPercent: -0.8, duration: 40, ease: 'sine.inOut', yoyo: true, repeat: -1 });
 
   if (heroShown) showHero(sec);
 
@@ -176,92 +259,115 @@ function buildHero(sec: HTMLElement, mode: Mode) {
   }
 
   // Scroll: dive into the heart — it swallows the screen and becomes the next scene.
-  const tl = gsap.timeline({
-    scrollTrigger: trig(sec),
-    defaults: { ease: 'none' },
-  });
-  tl.to($('.hero__content', sec), { yPercent: -18, opacity: 0, filter: mode === 'desktop' ? 'blur(10px)' : 'none', duration: 0.35 }, 0)
+  const tl = gsap.timeline({ scrollTrigger: trig(sec), defaults: { ease: 'none' } });
+  tl.to($('.hero__content', sec), { yPercent: -14, opacity: 0, duration: 0.38, ease: 'power2.in' }, 0)
     .to($('.hero__shade', sec), { opacity: 1, duration: 0.8 }, 0)
-    .to(heart, { scale: mode === 'desktop' ? 9 : 7, duration: 1, ease: 'power2.in' }, 0.1)
-    .to($('.hero__bg', sec), { scale: 1.25, opacity: 0.2, duration: 0.9 }, 0)
-    .to($('.hero__flood', sec), { opacity: 1, duration: 0.45 }, 0.45)
+    .to(heart, { scale: mode === 'desktop' ? 7 : 5.5, duration: 1, ease: 'power3.in' }, 0.12)
+    .to($('.hero__bg', sec), { opacity: 0.25, duration: 0.9 }, 0)
+    .to($('.hero__flood', sec), { opacity: 1, duration: 0.45 }, 0.5)
     .to($('.hero__ripples', sec), { opacity: 0, duration: 0.2 }, 0);
   cover(sec, mode);
 }
 
 function showHero(sec: HTMLElement) {
-  gsap.set($$('.hero__bg, .hero__heartwrap, .hero__tagline, .hero__quote, .hero__hint', sec), { autoAlpha: 1, clearProps: 'transform,filter' });
-  gsap.set(heroChars, { autoAlpha: 1, clearProps: 'transform,filter' });
+  gsap.set($$('.hero__bg, .hero__heartwrap, .hero__tagline, .hero__quote, .hero__hint, .hero__tg', sec), { autoAlpha: 1, clearProps: 'transform' });
+  gsap.set($('.hero__quote', sec), { clipPath: 'inset(0 0% 0 0)' });
+  gsap.set(heroChars, { yPercent: 0, rotation: 0 });
+  gsap.set($$('.hero__bar', sec), { scaleY: 0 });
   const sm = $('.hero__smoke', sec);
-  if (sm) gsap.set(sm, { opacity: 0.85 });
+  if (sm) gsap.set(sm, { opacity: 0.9 });
 }
 
-/** The first-screen entrance: letters swim out of the dark while the heart wakes. */
+/**
+ * The first-screen entrance, built as a short film:
+ * black → cinema bars open → the first heartbeat (flash) → the heart wakes → the title rises out of
+ * invisible slots letter by letter → the quote is wiped in → the invitation to scroll.
+ */
 export function playIntro(): gsap.core.Timeline {
   const sec = $('.hero')!;
   heroShown = true;
-  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-  // 0. the dark: parchment surfaces from black while the camera slowly pushes in
-  tl.fromTo($('.hero__bg', sec), { autoAlpha: 0, scale: 1.32 }, { autoAlpha: 1, scale: 1, duration: 4.2, ease: 'power2.out' }, 0)
-    .fromTo($('.hero__smoke', sec), { opacity: 0 }, { opacity: 0.85, duration: 3.2, ease: 'power1.inOut' }, 0.6)
-    // 1. the first heartbeat: a red flash and the heart wakes
-    .fromTo($('.hero__flash', sec), { opacity: 0 }, { opacity: 0.85, duration: 0.14, ease: 'power4.out' }, 0.5)
-    .to($('.hero__flash', sec), { opacity: 0, duration: 1.8, ease: 'power2.out' }, 0.66)
-    .fromTo($('.hero__heartwrap', sec), { autoAlpha: 0, scale: 0.5 }, { autoAlpha: 1, scale: 1, duration: 2.8, ease: 'expo.out' }, 0.5)
-    // 2. the word: letters swim out of the dark, one by one
-    .fromTo($('.hero__tagline', sec), { autoAlpha: 0, y: 14, letterSpacing: '0.75em' }, { autoAlpha: 1, y: 0, letterSpacing: '0.46em', duration: 2.4 }, 1.2)
-    .fromTo(
-      heroChars,
-      { autoAlpha: 0, yPercent: 60, scale: 1.5, filter: 'blur(20px)' },
-      { autoAlpha: 1, yPercent: 0, scale: 1, filter: 'blur(0px)', duration: 1.9, stagger: 0.11, ease: 'expo.out' },
-      1.0,
-    )
-    // 3. the quote and the invitation to scroll
-    .fromTo($('.hero__quote', sec), { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 2 }, 3.0)
-    .fromTo($('.hero__hint', sec), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.4 }, 4.0);
+  const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+  tl.fromTo($$('.hero__bar', sec), { scaleY: 1 }, { scaleY: 0, duration: 2.4, ease: 'expo.inOut' }, 0.15)
+    .fromTo($('.hero__bg', sec), { autoAlpha: 0, scale: 1.25 }, { autoAlpha: 1, scale: 1, duration: 4.8, ease: 'power3.out' }, 0)
+    .fromTo($('.hero__smoke', sec), { opacity: 0 }, { opacity: 0.9, duration: 3.6, ease: 'power1.inOut' }, 0.6)
+    // the first heartbeat
+    .fromTo($('.hero__flash', sec), { opacity: 0 }, { opacity: 0.8, duration: 0.12, ease: 'power4.out' }, 0.55)
+    .to($('.hero__flash', sec), { opacity: 0, duration: 2.0, ease: 'power2.out' }, 0.67)
+    .fromTo($('.hero__heartwrap', sec), { autoAlpha: 0, scale: 0.6, yPercent: 5 }, { autoAlpha: 1, scale: 1, yPercent: 0, duration: 3.4 }, 0.55)
+    // the word
+    .fromTo($('.hero__tagline', sec), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 2.2 }, 1.3)
+    .fromTo(heroChars, { yPercent: 118, rotation: 6 }, { yPercent: 0, rotation: 0, duration: 1.7, stagger: 0.078 }, 1.15)
+    .fromTo($('.hero__tg', sec), { autoAlpha: 0 }, { autoAlpha: 1, duration: 2.4, ease: 'power2.out' }, 2.3)
+    // the quote is wiped in from the left
+    .fromTo($('.hero__quote', sec), { autoAlpha: 1, clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.8, ease: 'power4.inOut' }, 3.0)
+    .fromTo($('.hero__hint', sec), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.4 }, 4.2);
   return tl;
 }
 
 /* ------------------------------------------------------------------ */
-/* Heart interludes                                                    */
+/* Heart interludes — every heart is a stack of layers                  */
 /* ------------------------------------------------------------------ */
 function buildHeart(sec: HTMLElement, mode: Mode) {
   const layers = $$('.hl', sec);
-  $$('.hl__pulse', sec).forEach((p) => registerPulse(p, 0.018));
-  const smoke = $('.hs__smoke', sec);
-  if (smoke && mode !== 'reduce') {
-    gsap.to(smoke, { xPercent: -6, duration: 26, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  }
+  // beat: the heart itself scales, its halo / bloom / ring swell in opacity
+  layers.forEach((l) => {
+    const rig = $('.hc-rig', l);
+    if (rig) registerPulse(rig, 0.022);
+    const halo = $('.hc-halo', l);
+    if (halo) registerGlow(halo, 0.26, 0.62);
+    const bloom = $('.hl__bloom', l);
+    if (bloom) registerGlow(bloom, 0.04, 0.5);
+    const pulse = $('.hl__pulse', l);
+    if (pulse) registerPulse(pulse, 0.018);
+    const oldHalo = $('.hl__halo', l);
+    if (oldHalo) registerGlow(oldHalo, 0.3, 0.6);
+    const ring = $('.hl__ring', l);
+    if (ring) registerGlow(ring, 0.25, 0.75);
+  });
 
-  $$('.hl__bloom', sec).forEach((p) => registerPulse(p, 0));
   if (mode === 'reduce') {
+    gsap.set(layers.slice(1), { autoAlpha: 0 });
     ScrollTrigger.create({ id: sec.id, trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
     return;
   }
-  const blur = (v: number) => (mode === 'desktop' ? `blur(${v}px)` : 'none');
-  const tl = gsap.timeline({
-    scrollTrigger: trig(sec, 0.55),
-    defaults: { ease: 'power2.inOut' },
-  });
-  gsap.set(layers.slice(1), { autoAlpha: 0 });
+  if (mode === 'desktop') {
+    offs.push(
+      parallax(sec, [
+        ['.hc-rig', 20],
+        ['.hc-halo', 12],
+        ['.hc-bg', -9],
+        ['.hf', -8],
+      ]),
+    );
+  }
 
-  // the scene arrives already filled (it is sliding over the previous one); the heart settles in
-  tl.fromTo(layers[0], { scale: 0.94 }, { scale: 1, duration: 1.2, ease: 'power2.out' }, 0);
-  tl.to({}, { duration: 0.8 }); // hold — the heart just beats
+  const tl = gsap.timeline({ scrollTrigger: trig(sec, 0.55), defaults: { ease: 'power2.inOut' } });
+  // every picture after the first waits behind a closed iris and opens from the heart's centre
+  gsap.set(layers.slice(1), { clipPath: 'circle(0% at 50% 50%)' });
+
+  const rig0 = $('.hc-rig', layers[0]);
+  if (rig0) tl.fromTo(rig0, { scale: 0.9 }, { scale: 1, duration: 1.6, ease: 'expo.out' }, 0);
+  tl.to({}, { duration: 0.9 }); // hold — the heart just beats
 
   layers.slice(1).forEach((next, i) => {
     const prev = layers[i];
-    tl.to(prev, { autoAlpha: 0, scale: 1.1, filter: blur(12), duration: 1 });
-    tl.fromTo(next, { autoAlpha: 0, scale: 0.88, filter: blur(12) }, { autoAlpha: 1, scale: 1, filter: blur(0), duration: 1 }, '<');
-    tl.fromTo($('.hl__halo', next), { opacity: 0.2, scale: 0.7 }, { opacity: 1, scale: 1.2, duration: 0.6, yoyo: true, repeat: 1 }, '<');
-    tl.to({}, { duration: 0.8 });
+    const t0 = tl.duration();
+    const nextRig = $('.hc-rig', next);
+    const prevRig = $('.hc-rig', prev);
+    tl.to(next, { clipPath: 'circle(88% at 50% 50%)', duration: 1.7, ease: 'power3.inOut' }, t0);
+    if (prevRig) tl.to(prevRig, { scale: 1.12, duration: 1.7, ease: 'power2.in' }, t0);
+    if (nextRig) tl.fromTo(nextRig, { scale: 0.62 }, { scale: 1, duration: 2.0, ease: 'expo.out' }, t0 + 0.15);
+    const nextHalo = $('.hc-halo', next);
+    if (nextHalo) tl.fromTo(nextHalo, { scale: 0.4 }, { scale: 1.12, duration: 2.0, ease: 'power2.out' }, t0 + 0.1);
+    tl.to({}, { duration: 1.0 }, t0 + 2.0);
   });
-  // the last picture stays up: the next scene slides over it
-  tl.to({}, { duration: 0.6 });
-  // a slow push-in on every frame for the whole dwell, so the picture never sits still
-  const frames = $$('.hf', sec);
-  if (frames.length) tl.fromTo(frames, { scale: 1 }, { scale: 1.09, duration: tl.duration(), ease: 'none' }, 0);
+  tl.to({}, { duration: 0.5 });
+
+  // a slow push-in on every picture for the whole dwell, so nothing sits still
+  const slow = $$('.hc-bg, .hf', sec);
+  if (slow.length) tl.fromTo(slow, { scale: 1 }, { scale: 1.12, duration: tl.duration(), ease: 'none' }, 0);
   cover(sec, mode);
+  enterParallax(sec, mode);
 }
 
 /* ------------------------------------------------------------------ */
@@ -289,6 +395,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
   const n = Number(sec.dataset.stage);
   const words = $$('.st__q, .st__p', sec).flatMap((p) => splitWords(p));
   const title = $('.st__title', sec)!;
+  const titleWords = splitMaskWords(title);
   const cite = $('.st__cite', sec);
   const art = $$('.st__art > *', sec);
   const bgImg = $('.bgimg', sec);
@@ -306,6 +413,10 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     const el = $(sel, sec);
     if (el) registerPulse(el, amp);
   });
+  const glow1 = $('.s1-glow', sec);
+  if (glow1) registerGlow(glow1, 0.25, 0.6);
+  const glow3 = $('.s3-aura', sec);
+  if (glow3) registerGlow(glow3, 0.3, 0.65);
   if (mode !== 'reduce') ambient(n, sec);
 
   if (mode === 'reduce') {
@@ -331,7 +442,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     if (bgImg) tl.fromTo(bgImg, { scale: 1.16 }, { scale: 1.0, duration: T, ease: 'none' }, 0);
     tl.from(art, { scale: 1.1, duration: 2.4, stagger: 0.3 }, 0);
     $$('[data-par]', sec).forEach((p) => tl.fromTo(p, { yPercent: 5 }, { yPercent: -5, duration: T, ease: 'none' }, 0));
-    tl.from(title, { y: 24, duration: 1.3 }, 0);
+    tl.fromTo(titleWords, { yPercent: 118 }, { yPercent: 0, duration: 1.2, stagger: 0.08, ease: 'expo.out' }, 0.05);
     tl.to(words, { opacity: 1, duration: 0.55, ease: 'none', stagger: { each: 6 / words.length } }, 2.3);
     if (cite) tl.from(cite, { autoAlpha: 0, y: 12, duration: 0.9 }, 8.7);
     stageExtras(n, sec, tl, T);
@@ -342,6 +453,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     tl.to($('.st__text', sec), { yPercent: -5, duration: T - exitAt, ease: 'none' }, exitAt);
     tl.to(art, { opacity: 0.35, scale: 1.05, duration: 2.4, ease: 'none' }, T - 2.4);
     cover(sec, mode);
+    enterParallax(sec, mode);
     return;
   }
 
@@ -355,13 +467,17 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     stagger: 0.2,
     scrollTrigger: { trigger: sec, start: 'top 75%', toggleActions: 'play none none reverse' },
   });
-  gsap.from(title, {
-    autoAlpha: 0,
-    y: 22,
-    duration: 1,
-    stagger: 0.15,
-    scrollTrigger: { trigger: title, start: 'top 88%', toggleActions: 'play none none reverse' },
-  });
+  gsap.fromTo(
+    titleWords,
+    { yPercent: 118 },
+    {
+      yPercent: 0,
+      duration: 1.1,
+      stagger: 0.08,
+      ease: 'expo.out',
+      scrollTrigger: { trigger: title, start: 'top 88%', toggleActions: 'play none none reverse' },
+    },
+  );
   $$('.st__q, .st__p', sec).forEach((p) => {
     const ws = $$('.w', p);
     gsap.to(ws, {
@@ -412,13 +528,18 @@ function buildEpilogue(sec: HTMLElement, mode: Mode) {
   ScrollTrigger.create({ id: 'epilogue', trigger: sec, start: 'top top', end: 'bottom top' });
   if (mode === 'reduce') return;
 
-  gsap.from($('.st__title', sec), {
-    autoAlpha: 0,
-    y: 26,
-    duration: 1.2,
-    stagger: 0.2,
-    scrollTrigger: { trigger: sec, start: 'top 55%', toggleActions: 'play none none reverse' },
-  });
+  const epiTitle = $('.st__title', sec)!;
+  gsap.fromTo(
+    splitMaskWords(epiTitle),
+    { yPercent: 118 },
+    {
+      yPercent: 0,
+      duration: 1.3,
+      stagger: 0.09,
+      ease: 'expo.out',
+      scrollTrigger: { trigger: sec, start: 'top 55%', toggleActions: 'play none none reverse' },
+    },
+  );
   $$('.st__q, .st__p', sec).forEach((p) => {
     const ws = $$('.w', p);
     gsap.to(ws, {
