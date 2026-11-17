@@ -20,6 +20,8 @@ interface Pulsed {
   el: HTMLElement;
   amp: number;
   visible: boolean;
+  /** survives scene rebuilds (language switch) — used for the beam and the preloader */
+  persistent: boolean;
 }
 
 const pulsed: Pulsed[] = [];
@@ -29,8 +31,8 @@ let observer: IntersectionObserver | null = null;
 let started = false;
 
 /** Elements get a CSS `scale` pulse plus a `--b` variable (0..1) for glow in CSS. */
-export function registerPulse(el: HTMLElement, amp = 0.03): void {
-  const item: Pulsed = { el, amp, visible: true };
+export function registerPulse(el: HTMLElement, amp = 0.03, persistent = false): void {
+  const item: Pulsed = { el, amp, visible: true, persistent };
   pulsed.push(item);
   if (!observer) {
     observer = new IntersectionObserver((entries) => {
@@ -44,8 +46,13 @@ export function registerPulse(el: HTMLElement, amp = 0.03): void {
 }
 
 export function clearPulses(): void {
+  const keep = pulsed.filter((p) => p.persistent && p.el.isConnected);
   observer?.disconnect();
   pulsed.length = 0;
+  for (const k of keep) {
+    pulsed.push(k);
+    observer?.observe(k.el);
+  }
 }
 
 export function onLub(fn: () => void): () => void {

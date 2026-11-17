@@ -23,6 +23,34 @@ const $ = <T extends HTMLElement = HTMLElement>(sel: string, root: ParentNode = 
 const $$ = <T extends HTMLElement = HTMLElement>(sel: string, root: ParentNode = document) =>
   Array.from(root.querySelectorAll<T>(sel));
 
+const stackOf = (sec: HTMLElement) => sec.closest<HTMLElement>('.stack')!;
+const dwellOf = (sec: HTMLElement) => Number(stackOf(sec)?.dataset.dwell ?? 1);
+/** ScrollTrigger config shared by every scene: scrubbed over its dwell; CSS sticky does the pinning. */
+const trig = (sec: HTMLElement, scrub: number | boolean = 0.6): ScrollTrigger.Vars => ({
+  id: sec.id,
+  trigger: stackOf(sec),
+  start: 'top top',
+  end: () => `+=${innerHeight * dwellOf(sec)}`,
+  scrub,
+  invalidateOnRefresh: true,
+});
+/** While the next scene slides over this one, this one sinks back and darkens. */
+function cover(sec: HTMLElement, mode: Mode) {
+  if (mode === 'reduce') return;
+  gsap.to(sec, {
+    '--cover': 0.82,
+    scale: mode === 'desktop' ? 0.93 : 0.96,
+    ease: 'none',
+    scrollTrigger: {
+      trigger: stackOf(sec),
+      start: () => `top+=${innerHeight * dwellOf(sec)} top`,
+      end: () => `+=${innerHeight}`,
+      scrub: true,
+      invalidateOnRefresh: true,
+    },
+  });
+}
+
 const defOf = (id: string): SceneDef =>
   scenes.find((s) => s.id === (id === 'finale' ? 'epilogue' : id)) as SceneDef;
 
@@ -143,21 +171,13 @@ function buildHero(sec: HTMLElement, mode: Mode) {
   if (heroShown) showHero(sec);
 
   if (mode === 'reduce') {
-    ScrollTrigger.create({ id: 'hero', trigger: sec, start: 'top top', end: 'bottom top' });
+    ScrollTrigger.create({ id: 'hero', trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
     return;
   }
 
   // Scroll: dive into the heart — it swallows the screen and becomes the next scene.
   const tl = gsap.timeline({
-    scrollTrigger: {
-      id: 'hero',
-      trigger: sec,
-      start: 'top top',
-      end: mode === 'desktop' ? '+=150%' : '+=120%',
-      pin: true,
-      scrub: 0.6,
-      anticipatePin: 1,
-    },
+    scrollTrigger: trig(sec),
     defaults: { ease: 'none' },
   });
   tl.to($('.hero__content', sec), { yPercent: -18, opacity: 0, filter: mode === 'desktop' ? 'blur(10px)' : 'none', duration: 0.35 }, 0)
@@ -166,6 +186,7 @@ function buildHero(sec: HTMLElement, mode: Mode) {
     .to($('.hero__bg', sec), { scale: 1.25, opacity: 0.2, duration: 0.9 }, 0)
     .to($('.hero__flood', sec), { opacity: 1, duration: 0.45 }, 0.45)
     .to($('.hero__ripples', sec), { opacity: 0, duration: 0.2 }, 0);
+  cover(sec, mode);
 }
 
 function showHero(sec: HTMLElement) {
@@ -212,28 +233,20 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
     gsap.to(smoke, { xPercent: -6, duration: 26, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   }
 
+  $$('.hl__bloom', sec).forEach((p) => registerPulse(p, 0));
   if (mode === 'reduce') {
-    ScrollTrigger.create({ id: sec.id, trigger: sec, start: 'top top', end: 'bottom top' });
+    ScrollTrigger.create({ id: sec.id, trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
     return;
   }
   const blur = (v: number) => (mode === 'desktop' ? `blur(${v}px)` : 'none');
-  const many = layers.length > 1;
   const tl = gsap.timeline({
-    scrollTrigger: {
-      id: sec.id,
-      trigger: sec,
-      start: 'top top',
-      end: many ? '+=190%' : '+=120%',
-      pin: true,
-      scrub: 0.55,
-      anticipatePin: 1,
-    },
+    scrollTrigger: trig(sec, 0.55),
     defaults: { ease: 'power2.inOut' },
   });
   gsap.set(layers.slice(1), { autoAlpha: 0 });
 
-  tl.fromTo($('.hs__bg', sec), { opacity: 0 }, { opacity: 1, duration: 0.8 }, 0);
-  tl.fromTo(layers[0], { autoAlpha: 0, scale: 0.84, filter: blur(14) }, { autoAlpha: 1, scale: 1, filter: blur(0), duration: 1.1, ease: 'power2.out' }, 0);
+  // the scene arrives already filled (it is sliding over the previous one); the heart settles in
+  tl.fromTo(layers[0], { scale: 0.94 }, { scale: 1, duration: 1.2, ease: 'power2.out' }, 0);
   tl.to({}, { duration: 0.8 }); // hold — the heart just beats
 
   layers.slice(1).forEach((next, i) => {
@@ -243,7 +256,12 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
     tl.fromTo($('.hl__halo', next), { opacity: 0.2, scale: 0.7 }, { opacity: 1, scale: 1.2, duration: 0.6, yoyo: true, repeat: 1 }, '<');
     tl.to({}, { duration: 0.8 });
   });
-  tl.to(layers[layers.length - 1], { scale: 1.14, autoAlpha: 0, filter: blur(10), duration: 0.9, ease: 'power2.in' });
+  // the last picture stays up: the next scene slides over it
+  tl.to({}, { duration: 0.6 });
+  // a slow push-in on every frame for the whole dwell, so the picture never sits still
+  const frames = $$('.hf', sec);
+  if (frames.length) tl.fromTo(frames, { scale: 1 }, { scale: 1.09, duration: tl.duration(), ease: 'none' }, 0);
+  cover(sec, mode);
 }
 
 /* ------------------------------------------------------------------ */
@@ -291,7 +309,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
   if (mode !== 'reduce') ambient(n, sec);
 
   if (mode === 'reduce') {
-    ScrollTrigger.create({ id: sec.id, trigger: sec, start: 'top top', end: 'bottom top' });
+    ScrollTrigger.create({ id: sec.id, trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
     return;
   }
 
@@ -306,13 +324,14 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     });
     const T = 15;
     const tl = gsap.timeline({
-      scrollTrigger: { id: sec.id, trigger: sec, start: 'top top', end: '+=360%', pin: true, scrub: 0.6, anticipatePin: 1 },
+      scrollTrigger: trig(sec),
       defaults: { ease: 'power2.out' },
     });
+    // the scene slides in already composed (art + title visible); then it comes alive
     if (bgImg) tl.fromTo(bgImg, { scale: 1.16 }, { scale: 1.0, duration: T, ease: 'none' }, 0);
-    tl.from(art, { autoAlpha: 0, scale: 1.1, duration: 2.4, stagger: 0.3 }, 0);
+    tl.from(art, { scale: 1.1, duration: 2.4, stagger: 0.3 }, 0);
     $$('[data-par]', sec).forEach((p) => tl.fromTo(p, { yPercent: 5 }, { yPercent: -5, duration: T, ease: 'none' }, 0));
-    tl.from(title, { autoAlpha: 0, y: 28, filter: 'blur(8px)', duration: 1.3 }, 0.7);
+    tl.from(title, { y: 24, duration: 1.3 }, 0);
     tl.to(words, { opacity: 1, duration: 0.55, ease: 'none', stagger: { each: 6 / words.length } }, 2.3);
     if (cite) tl.from(cite, { autoAlpha: 0, y: 12, duration: 0.9 }, 8.7);
     stageExtras(n, sec, tl, T);
@@ -321,12 +340,13 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     tl.to(words, { opacity: 0, duration: 0.6, ease: 'none', stagger: { each: 3.6 / words.length } }, exitAt);
     tl.to([title, cite].filter(Boolean), { autoAlpha: 0, duration: 1.6, ease: 'none' }, exitAt + 2.2);
     tl.to($('.st__text', sec), { yPercent: -5, duration: T - exitAt, ease: 'none' }, exitAt);
-    tl.to(art, { opacity: 0.3, scale: 1.05, duration: 2.4, ease: 'none' }, T - 2.4);
+    tl.to(art, { opacity: 0.35, scale: 1.05, duration: 2.4, ease: 'none' }, T - 2.4);
+    cover(sec, mode);
     return;
   }
 
   // mobile: no pinning — native scroll, words light up as they cross the viewport
-  ScrollTrigger.create({ id: sec.id, trigger: sec, start: 'top top', end: 'bottom top' });
+  ScrollTrigger.create({ id: sec.id, trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
   gsap.from(art, {
     autoAlpha: 0,
     scale: 1.08,
@@ -421,7 +441,7 @@ function buildFinale(sec: HTMLElement, mode: Mode, hooks: Hooks) {
   registerPulse($('.fin__rings', sec)!, 0.02);
 
   if (mode === 'reduce') {
-    ScrollTrigger.create({ id: 'finale', trigger: sec, start: 'top top', end: 'bottom top' });
+    ScrollTrigger.create({ id: 'finale', trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
     gsap.set($('.fin__light', sec), { clipPath: 'none' });
     gsap.set(words, { opacity: 1 });
     hooks.setUi('dark');
@@ -430,13 +450,7 @@ function buildFinale(sec: HTMLElement, mode: Mode, hooks: Hooks) {
   gsap.set(words, { opacity: 0, y: 22, filter: 'blur(10px)' });
   const tl = gsap.timeline({
     scrollTrigger: {
-      id: 'finale',
-      trigger: sec,
-      start: 'top top',
-      end: '+=170%',
-      pin: true,
-      scrub: 0.6,
-      anticipatePin: 1,
+      ...trig(sec),
       onUpdate: (self) => hooks.setUi(self.progress > 0.42 ? 'dark' : 'light'),
     },
     defaults: { ease: 'none' },

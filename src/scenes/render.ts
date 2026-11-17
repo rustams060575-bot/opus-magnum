@@ -1,5 +1,5 @@
 import type { Locale } from '../i18n';
-import { img, ROMAN, scenes, type SceneDef, type HeartLayer } from './config';
+import { img, frameUrl, frameBg, ROMAN, scenes, type SceneDef, type HeartLayer } from './config';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
@@ -29,6 +29,13 @@ function hero(s: Extract<SceneDef, { type: 'hero' }>, L: Locale): string {
 }
 
 function heartLayer(l: HeartLayer, i: number): string {
+  if (l.kind === 'frame') {
+    return `
+<figure class="hl hl--frame" data-i="${i}" style="--glow:${l.glow};--bg:${frameBg(l.src)};--ms:${l.ms ?? 1}">
+  <img class="hf" src="${frameUrl(l.src)}" alt="" loading="lazy" decoding="async">
+  <i class="hl__bloom"></i>
+</figure>`;
+  }
   const behind = l.behind ? `<img class="hl__behind" src="${img(l.behind)}" alt="" loading="lazy" decoding="async">` : '';
   return `
 <figure class="hl hl--${l.kind}" data-i="${i}" style="--glow:${l.glow}">
@@ -42,10 +49,9 @@ function heartLayer(l: HeartLayer, i: number): string {
 }
 
 function heart(s: Extract<SceneDef, { type: 'heart' }>): string {
-  const smoke = s.smoke ? `<img class="hs__smoke" src="${img('smoke')}" alt="" decoding="async">` : '';
   return `
 <section class="hs scene" id="${s.id}" data-scene="${s.id}">
-  <div class="hs__bg">${smoke}</div>
+  <div class="hs__bg" style="background:${frameBg(s.layers[0].src)}"></div>
   <div class="hs__layers">${s.layers.map(heartLayer).join('')}</div>
 </section>`;
 }
@@ -111,10 +117,10 @@ function stage(s: Extract<SceneDef, { type: 'stage' }>, L: Locale): string {
 </section>`;
 }
 
-function epilogue(L: Locale): string {
+function epilogue(L: Locale, z: number, dwell: number): string {
   const e = L.epilogue;
   return `
-<section class="epi scene" id="epilogue" data-scene="epilogue" data-stage="8">
+<section class="epi scene" id="epilogue" data-scene="epilogue" data-stage="8" style="--z:${z}">
   <div class="epi__glow"></div>
   <div class="epi__body">
     <h2 class="st__title">${esc(L.ui.epilogue)}: ${esc(e.title)}</h2>
@@ -122,7 +128,7 @@ function epilogue(L: Locale): string {
     ${e.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('')}
   </div>
 </section>
-<section class="fin scene" id="finale" data-scene="finale">
+${stack('finale', 'finale', dwell, z + 1, `<section class="fin scene" id="finale" data-scene="finale">
   <div class="fin__light"></div>
   <svg class="fin__rings" viewBox="0 0 200 200" aria-hidden="true">
     <circle cx="100" cy="100" r="96" fill="none" stroke="currentColor" stroke-width=".3"/>
@@ -138,21 +144,29 @@ function epilogue(L: Locale): string {
       <p class="fin__note">${esc(L.ui.footerNote)}</p>
     </footer>
   </div>
-</section>`;
+</section>`, true)}`;
+}
+
+/** Every scene sits in a tall `.stack` wrapper; the scene itself is sticky inside it,
+ *  and the next wrapper is pulled up by one screen so it slides OVER the previous scene. */
+function stack(kind: string, id: string, dwell: number, z: number, inner: string, last = false): string {
+  return `<div class="stack stack--${kind}${last ? ' stack--last' : ''}" data-dwell="${dwell}" style="--dwell:${dwell};--z:${z}">${inner}</div>`;
 }
 
 export function renderApp(L: Locale): string {
+  let z = 1;
   return scenes
     .map((s) => {
+      const zi = z++;
       switch (s.type) {
         case 'hero':
-          return hero(s, L);
+          return stack('hero', s.id, s.dwell, zi, hero(s, L));
         case 'heart':
-          return heart(s);
+          return stack('heart', s.id, s.dwell, zi, heart(s));
         case 'stage':
-          return stage(s, L);
+          return stack('stage', s.id, s.dwell, zi, stage(s, L));
         case 'epilogue':
-          return epilogue(L);
+          return epilogue(L, zi, s.dwell);
       }
     })
     .join('');

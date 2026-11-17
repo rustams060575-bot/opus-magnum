@@ -1276,6 +1276,123 @@ html[lang='ru'] .fin__text {
   opacity: 0.6;
 }
 
+/* ---------- Stacking ----------
+   Every scene is a full-screen sticky layer inside a tall `.stack` wrapper. The next wrapper is
+   pulled up by one screen, so it slides OVER the scene that is still pinned underneath
+   ("one block on top of another"). --dwell = screens of scrolling the scene keeps for itself. */
+body {
+  overflow-x: clip;
+}
+.stack {
+  position: relative;
+  height: calc(100svh * (2 + var(--dwell, 1)));
+  z-index: var(--z, 1);
+}
+.stack + .stack {
+  margin-top: -100svh;
+}
+.stack > .scene {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 0;
+  box-shadow: 0 -34px 90px rgba(0, 0, 0, 0.65);
+  will-change: transform;
+}
+.stack--last {
+  height: calc(100svh * (1 + var(--dwell, 1)));
+}
+.stack + .epi {
+  margin-top: -100svh;
+}
+.epi {
+  z-index: var(--z, 1);
+  box-shadow: 0 -34px 90px rgba(0, 0, 0, 0.65);
+}
+/* the sinking scene darkens while the next one covers it */
+.scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: var(--cover, 0);
+  pointer-events: none;
+  z-index: 60;
+}
+html.reduced .stack {
+  height: auto;
+  margin-top: 0;
+}
+html.reduced .stack > .scene {
+  position: relative;
+  height: auto;
+  min-height: 100svh;
+}
+html.reduced .stack + .epi {
+  margin-top: 0;
+}
+
+/* ---------- Full-frame heart pictures (the Figma frames, edge to edge) ---------- */
+.hl--frame {
+  background: var(--bg);
+}
+.hl--frame .hf {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+.hl__bloom {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 66vmin;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--glow) 78%, transparent) 0%, transparent 66%);
+  mix-blend-mode: screen;
+  opacity: calc(0.04 + var(--b, 0) * 0.5);
+  pointer-events: none;
+}
+
+/* ---------- Bigger, pulsing intro ---------- */
+#preloader .pre__mark {
+  font: 400 clamp(46px, 8.4vw, 156px) / 1 var(--f-display);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #a98427;
+  -webkit-text-stroke: 2.4px #f0cb52;
+  paint-order: stroke fill;
+  opacity: 1;
+  text-shadow: 0 0 calc(20px + var(--b, 0) * 60px) rgba(255, 70, 30, calc(0.3 + var(--b, 0) * 0.6));
+  white-space: nowrap;
+}
+#preloader .pre__ecg {
+  width: min(1000px, 92vw);
+}
+#preloader .pre__pct {
+  font-size: 13px;
+  letter-spacing: 0.46em;
+}
+#preloader .pre__enter {
+  padding: 20px 56px;
+  font-size: 16px;
+  gap: 18px;
+  border-width: 1.5px;
+  box-shadow: 0 0 calc(18px + var(--b, 0) * 40px) rgba(255, 110, 50, calc(0.25 + var(--b, 0) * 0.45));
+}
+#preloader .pre__enter i {
+  width: 11px;
+  height: 11px;
+}
+#preloader .pre__langs button {
+  font-size: 14px;
+  padding: 10px 14px;
+}
+
 /* ==========================================================================
    Mobile / small screens — art on top, text below, native scrolling
    ========================================================================== */
@@ -1358,6 +1475,33 @@ html[lang='ru'] .fin__text {
     font-size: 13px;
   }
 
+  /* on phones the stage text flows naturally (native scroll); hearts and the hero still stack */
+  .stack--stage {
+    height: auto;
+  }
+  .stack--stage > .scene {
+    position: relative;
+    height: auto;
+    box-shadow: 0 -34px 90px rgba(0, 0, 0, 0.65);
+  }
+  .stack--stage + .stack,
+  .stack--stage + .epi {
+    margin-top: 0;
+  }
+  .hl--frame .hf {
+    inset: 0;
+    margin: auto;
+    width: calc(100% * var(--ms, 1));
+    height: calc(100% * var(--ms, 1));
+  }
+  #preloader .pre__mark {
+    font-size: min(8.4vw, 64px);
+    letter-spacing: 0.03em;
+    -webkit-text-stroke-width: 1.4px;
+  }
+  #preloader .pre__enter {
+    padding: 18px 44px;
+  }
   .st {
     display: flex;
     flex-direction: column;

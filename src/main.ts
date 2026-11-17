@@ -159,7 +159,7 @@ ScrollTrigger.create({
 /* ---------------- cursor light ---------------- */
 {
   const beam = $('#beam i');
-  registerPulse(beam, 0.05);
+  registerPulse(beam, 0.05, true);
   const fine = matchMedia('(pointer: fine)').matches;
   gsap.set(beam, { x: innerWidth * 0.5, y: innerHeight * 0.45 });
   if (fine) {
@@ -239,6 +239,10 @@ async function boot() {
   buildRail();
   paintPreloaderText();
   mount();
+  // the intro already breathes: the title and the Enter button pulse on the heartbeat clock
+  startBeat();
+  registerPulse($('.pre__mark'), 0.022, true);
+  registerPulse($('#pre-enter'), 0.035, true);
   await preload();
   const ui = $('#pre-ui');
   ui.setAttribute('aria-hidden', 'false');
