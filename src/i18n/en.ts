@@ -18,7 +18,7 @@ export const en: Locale = {
   },
   hero: {
     tagline: 'A journey into the self',
-    quote: '“Die Begegnung mit sich selbst gehört zu den unangenehmsten Dingen.”',
+    quote: '«Die Begegnung mit sich selbst gehört zu den unangenehmsten Dingen.»',
     cite: '— C.G. Jung',
   },
   stages: [

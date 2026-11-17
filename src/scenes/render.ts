@@ -7,20 +7,24 @@ function hero(s: Extract<SceneDef, { type: 'hero' }>, L: Locale): string {
   return `
 <section class="hero scene" id="${s.id}" data-scene="${s.id}">
   <div class="hero__bg"><img src="${img('title-parchment')}" alt="" decoding="async" fetchpriority="high"></div>
+  <canvas class="hero__smoke" aria-hidden="true"></canvas>
   <div class="hero__redpulse"></div>
   <div class="hero__shade"></div>
   <div class="hero__ripples" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <div class="hero__heartwrap"><div class="hero__heart"><img class="hh-base" src="${img('heart-lava')}" alt="" decoding="async"><img class="hh-lava" src="${img('heart-lava')}" alt="" decoding="async"></div></div>
+  <div class="hero__flash"></div>
   <div class="hero__flood"></div>
-  <div class="hero__content">
-    <p class="hero__tagline" data-intro>${esc(L.hero.tagline)}</p>
-    <h1 class="hero__title" data-intro>Opus Magnum</h1>
-    <blockquote class="hero__quote" data-intro>
-      <p>${esc(L.hero.quote)}</p>
-      <cite>${esc(L.hero.cite)}</cite>
-    </blockquote>
+  <div class="hero__cv">
+    <div class="hero__content">
+      <p class="hero__tagline">${esc(L.hero.tagline)}</p>
+      <h1 class="hero__title">Opus Magnum</h1>
+      <blockquote class="hero__quote">
+        <p>${esc(L.hero.quote)}</p>
+        <cite>${esc(L.hero.cite)}</cite>
+      </blockquote>
+    </div>
   </div>
-  <div class="hero__hint" data-intro><span>${esc(L.ui.scroll)}</span><i></i></div>
+  <div class="hero__hint"><span>${esc(L.ui.scroll)}</span><i></i></div>
 </section>`;
 }
 
@@ -54,7 +58,7 @@ const STAGE_ART: Record<number, { bg: string; art: string }> = {
   },
   2: {
     bg: `<img class="bgimg" src="${img('foil')}" alt="" loading="lazy" decoding="async"><div class="st__scrim st__scrim--l"></div>`,
-    art: `<div class="s2-portal"><div class="s2-oval"><img src="${img('face')}" alt="" loading="lazy" decoding="async"><img class="yy" src="${img('yinyang')}" alt="" loading="lazy" decoding="async"></div><i class="s2-ring"></i></div>`,
+    art: `<div class="s2-wrap"><div class="s2-oval"><img src="${img('face')}" alt="" loading="lazy" decoding="async"></div><div class="s2-circle"><img src="${img('yinyang')}" alt="" loading="lazy" decoding="async"></div><i class="s2-ring"></i></div>`,
   },
   3: {
     bg: `<img class="bgimg" src="${img('grunge')}" alt="" loading="lazy" decoding="async"><div class="st__scrim st__scrim--l"></div>`,
@@ -98,10 +102,11 @@ function stage(s: Extract<SceneDef, { type: 'stage' }>, L: Locale): string {
 <section class="st st--${s.n} st--${s.side} scene" id="${s.id}" data-scene="${s.id}" data-stage="${s.n}">
   <div class="st__bg">${a.bg}</div>
   <div class="st__art">${a.art}</div>
-  <div class="st__text">
-    <p class="st__eyebrow"><span>${esc(L.ui.stage)}</span><b>${ROMAN[s.n - 1]}</b></p>
-    <h2 class="st__title">${esc(t.title)}</h2>
-    ${q}${ps}${cite}
+  <div class="st__cv">
+    <div class="st__text">
+      <h2 class="st__title">${esc(L.ui.stage)} ${ROMAN[s.n - 1]}: ${esc(t.title)}</h2>
+      ${q}${ps}${cite}
+    </div>
   </div>
 </section>`;
 }
@@ -112,8 +117,7 @@ function epilogue(L: Locale): string {
 <section class="epi scene" id="epilogue" data-scene="epilogue" data-stage="8">
   <div class="epi__glow"></div>
   <div class="epi__body">
-    <p class="st__eyebrow"><span>${esc(L.ui.epilogue)}</span></p>
-    <h2 class="st__title">${esc(e.title)}</h2>
+    <h2 class="st__title">${esc(L.ui.epilogue)}: ${esc(e.title)}</h2>
     <p class="st__q">${esc(e.q)}</p>
     ${e.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('')}
   </div>

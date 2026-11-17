@@ -31,6 +31,7 @@ export function splitChars(el: HTMLElement): HTMLElement[] {
     } else {
       s.className = 'ch';
       s.textContent = ch;
+      s.style.setProperty('--i', String(out.length));
       out.push(s);
     }
     el.appendChild(s);

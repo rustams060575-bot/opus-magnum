@@ -1,4 +1,5 @@
-import '@fontsource/almendra-display/latin-400.css';
+import '@fontsource/cinzel-decorative/latin-400.css';
+import '@fontsource/cinzel-decorative/latin-700.css';
 import '@fontsource/montserrat/latin-500.css';
 import '@fontsource/montserrat/latin-600.css';
 import '@fontsource/montserrat/latin-700.css';
@@ -21,6 +22,7 @@ import Lenis from 'lenis';
 import { detectLang, locales, order, saveLang } from './i18n';
 import { startBeat, setBpm, registerPulse } from './core/beat';
 import { Particles } from './core/particles';
+import { bindSoundButton, initAudio, startAudio } from './core/audio';
 import { renderApp } from './scenes/render';
 import { destroyScenes, initScenes, playIntro, sceneStart, type Hooks } from './scenes/animate';
 import { scenes, type Mood } from './scenes/config';
@@ -182,7 +184,7 @@ function waitImg(img: HTMLImageElement): Promise<void> {
 
 async function preload(): Promise<void> {
   const critical = Array.from(app.querySelectorAll<HTMLImageElement>('.hero img, #heart-1 img'));
-  const fonts = ['400 40px "Almendra Display"', '700 20px Montserrat', '500 16px "Libre Franklin"'].map((f) =>
+  const fonts = ['700 40px "Cinzel Decorative"', '700 20px Montserrat', '500 16px "Libre Franklin"'].map((f) =>
     document.fonts.load(f, 'Opus Magnum').catch(() => undefined),
   );
   const tasks: Promise<unknown>[] = [...critical.map(waitImg), ...fonts];
@@ -216,6 +218,7 @@ async function enter() {
   entered = true;
   const pre = $('#preloader');
   startBeat();
+  void startAudio();
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   gsap.to('.pre__content', { opacity: 0, scale: 1.06, duration: 0.7, ease: 'power2.in' });
   if (reduce) {
@@ -230,6 +233,8 @@ async function enter() {
 }
 
 async function boot() {
+  void initAudio();
+  bindSoundButton((on) => (on ? 'Sound on' : 'Sound off'));
   buildLangButtons();
   buildRail();
   paintPreloaderText();

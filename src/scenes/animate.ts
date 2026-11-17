@@ -2,6 +2,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { splitChars, splitWords } from '../core/split';
 import { clearPulses, onBeatFrame, onLub, registerPulse } from '../core/beat';
+import { Smoke } from '../core/smoke';
 import { scenes, type Mood, type SceneDef } from './config';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -132,6 +133,13 @@ function buildHero(sec: HTMLElement, mode: Mode) {
   });
   offs.push(offLub);
 
+  const smokeCanvas = $<HTMLCanvasElement>('.hero__smoke', sec);
+  if (smokeCanvas && mode !== 'reduce') {
+    const smoke = new Smoke(smokeCanvas);
+    offs.push(() => smoke.destroy());
+    offs.push(onBeatFrame((v) => smoke.setBeat(v)));
+  }
+
   if (heroShown) showHero(sec);
 
   if (mode === 'reduce') {
@@ -163,6 +171,8 @@ function buildHero(sec: HTMLElement, mode: Mode) {
 function showHero(sec: HTMLElement) {
   gsap.set($$('.hero__bg, .hero__heartwrap, .hero__tagline, .hero__quote, .hero__hint', sec), { autoAlpha: 1, clearProps: 'transform,filter' });
   gsap.set(heroChars, { autoAlpha: 1, clearProps: 'transform,filter' });
+  const sm = $('.hero__smoke', sec);
+  if (sm) gsap.set(sm, { opacity: 0.85 });
 }
 
 /** The first-screen entrance: letters swim out of the dark while the heart wakes. */
@@ -170,17 +180,24 @@ export function playIntro(): gsap.core.Timeline {
   const sec = $('.hero')!;
   heroShown = true;
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-  tl.fromTo($('.hero__bg', sec), { autoAlpha: 0, scale: 1.18 }, { autoAlpha: 1, scale: 1, duration: 3.4, ease: 'power2.out' }, 0)
-    .fromTo($('.hero__heartwrap', sec), { autoAlpha: 0, scale: 0.55 }, { autoAlpha: 1, scale: 1, duration: 2.6, ease: 'expo.out' }, 0.3)
-    .fromTo($('.hero__tagline', sec), { autoAlpha: 0, y: 14, letterSpacing: '0.7em' }, { autoAlpha: 1, y: 0, letterSpacing: '0.42em', duration: 2.2 }, 1.0)
+  // 0. the dark: parchment surfaces from black while the camera slowly pushes in
+  tl.fromTo($('.hero__bg', sec), { autoAlpha: 0, scale: 1.32 }, { autoAlpha: 1, scale: 1, duration: 4.2, ease: 'power2.out' }, 0)
+    .fromTo($('.hero__smoke', sec), { opacity: 0 }, { opacity: 0.85, duration: 3.2, ease: 'power1.inOut' }, 0.6)
+    // 1. the first heartbeat: a red flash and the heart wakes
+    .fromTo($('.hero__flash', sec), { opacity: 0 }, { opacity: 0.85, duration: 0.14, ease: 'power4.out' }, 0.5)
+    .to($('.hero__flash', sec), { opacity: 0, duration: 1.8, ease: 'power2.out' }, 0.66)
+    .fromTo($('.hero__heartwrap', sec), { autoAlpha: 0, scale: 0.5 }, { autoAlpha: 1, scale: 1, duration: 2.8, ease: 'expo.out' }, 0.5)
+    // 2. the word: letters swim out of the dark, one by one
+    .fromTo($('.hero__tagline', sec), { autoAlpha: 0, y: 14, letterSpacing: '0.75em' }, { autoAlpha: 1, y: 0, letterSpacing: '0.46em', duration: 2.4 }, 1.2)
     .fromTo(
       heroChars,
-      { autoAlpha: 0, yPercent: 55, scale: 1.45, filter: 'blur(18px)' },
-      { autoAlpha: 1, yPercent: 0, scale: 1, filter: 'blur(0px)', duration: 1.7, stagger: 0.095, ease: 'expo.out' },
-      0.9,
+      { autoAlpha: 0, yPercent: 60, scale: 1.5, filter: 'blur(20px)' },
+      { autoAlpha: 1, yPercent: 0, scale: 1, filter: 'blur(0px)', duration: 1.9, stagger: 0.11, ease: 'expo.out' },
+      1.0,
     )
-    .fromTo($('.hero__quote', sec), { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 1.8 }, 2.5)
-    .fromTo($('.hero__hint', sec), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.4 }, 3.4);
+    // 3. the quote and the invitation to scroll
+    .fromTo($('.hero__quote', sec), { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 2 }, 3.0)
+    .fromTo($('.hero__hint', sec), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.4 }, 4.0);
   return tl;
 }
 
@@ -232,10 +249,27 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
 /* ------------------------------------------------------------------ */
 /* Stages                                                              */
 /* ------------------------------------------------------------------ */
+/** Shrinks a stage's text just enough to stay inside the viewport (long RU/ES translations). */
+function fitText(sec: HTMLElement) {
+  const text = $('.st__text', sec);
+  const cv = $('.st__cv', sec);
+  if (!text || !cv) return;
+  sec.style.setProperty('--fit', '1');
+  const H = sec.clientHeight;
+  for (let i = 0; i < 3; i++) {
+    const cvTop = (H - cv.offsetHeight) / 2;
+    const bottom = cvTop + text.offsetTop + text.offsetHeight;
+    const limit = H - Math.max(24, H * 0.035);
+    if (bottom <= limit) break;
+    const cur = Number(sec.style.getPropertyValue('--fit')) || 1;
+    const next = Math.max(0.5, cur * ((limit - cvTop - text.offsetTop) / text.offsetHeight) * 0.99);
+    sec.style.setProperty('--fit', next.toFixed(3));
+  }
+}
+
 function buildStage(sec: HTMLElement, mode: Mode) {
   const n = Number(sec.dataset.stage);
   const words = $$('.st__q, .st__p', sec).flatMap((p) => splitWords(p));
-  const eyebrow = $('.st__eyebrow', sec)!;
   const title = $('.st__title', sec)!;
   const cite = $('.st__cite', sec);
   const art = $$('.st__art > *', sec);
@@ -244,7 +278,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
   // ambient life that doesn't depend on scroll
   const pulseMap: Record<number, [string, number][]> = {
     1: [['.s1-glow', 0]],
-    2: [['.s2-portal', 0.018]],
+    2: [['.s2-wrap', 0.01]],
     3: [['.s3-hands', 0.015]],
     5: [['.s5-star', 0.035]],
     6: [['.s6-flare', 0.03]],
@@ -262,20 +296,32 @@ function buildStage(sec: HTMLElement, mode: Mode) {
   }
 
   if (mode === 'desktop') {
-    const T = 11;
+    const refit = () => fitText(sec);
+    refit();
+    ScrollTrigger.addEventListener('refreshInit', refit);
+    offs.push(() => ScrollTrigger.removeEventListener('refreshInit', refit));
+    document.fonts?.ready.then(() => {
+      refit();
+      ScrollTrigger.refresh();
+    });
+    const T = 15;
     const tl = gsap.timeline({
-      scrollTrigger: { id: sec.id, trigger: sec, start: 'top top', end: '+=270%', pin: true, scrub: 0.6, anticipatePin: 1 },
+      scrollTrigger: { id: sec.id, trigger: sec, start: 'top top', end: '+=360%', pin: true, scrub: 0.6, anticipatePin: 1 },
       defaults: { ease: 'power2.out' },
     });
     if (bgImg) tl.fromTo(bgImg, { scale: 1.16 }, { scale: 1.0, duration: T, ease: 'none' }, 0);
     tl.from(art, { autoAlpha: 0, scale: 1.1, duration: 2.4, stagger: 0.3 }, 0);
     $$('[data-par]', sec).forEach((p) => tl.fromTo(p, { yPercent: 5 }, { yPercent: -5, duration: T, ease: 'none' }, 0));
-    tl.from(eyebrow, { autoAlpha: 0, x: -24, duration: 1 }, 0.6);
-    tl.from(title, { autoAlpha: 0, y: 28, filter: 'blur(8px)', duration: 1.3 }, 0.85);
+    tl.from(title, { autoAlpha: 0, y: 28, filter: 'blur(8px)', duration: 1.3 }, 0.7);
     tl.to(words, { opacity: 1, duration: 0.55, ease: 'none', stagger: { each: 6 / words.length } }, 2.3);
     if (cite) tl.from(cite, { autoAlpha: 0, y: 12, duration: 0.9 }, 8.7);
     stageExtras(n, sec, tl, T);
-    tl.to($('.st__text', sec), { autoAlpha: 0, y: -26, duration: 0.7, ease: 'power2.in' }, T - 0.7);
+    // the text leaves as slowly as it arrived: dissolving word by word, in reading order, while drifting up
+    const exitAt = 10.4;
+    tl.to(words, { opacity: 0, duration: 0.6, ease: 'none', stagger: { each: 3.6 / words.length } }, exitAt);
+    tl.to([title, cite].filter(Boolean), { autoAlpha: 0, duration: 1.6, ease: 'none' }, exitAt + 2.2);
+    tl.to($('.st__text', sec), { yPercent: -5, duration: T - exitAt, ease: 'none' }, exitAt);
+    tl.to(art, { opacity: 0.3, scale: 1.05, duration: 2.4, ease: 'none' }, T - 2.4);
     return;
   }
 
@@ -289,12 +335,12 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     stagger: 0.2,
     scrollTrigger: { trigger: sec, start: 'top 75%', toggleActions: 'play none none reverse' },
   });
-  gsap.from([eyebrow, title], {
+  gsap.from(title, {
     autoAlpha: 0,
     y: 22,
     duration: 1,
     stagger: 0.15,
-    scrollTrigger: { trigger: eyebrow, start: 'top 88%', toggleActions: 'play none none reverse' },
+    scrollTrigger: { trigger: title, start: 'top 88%', toggleActions: 'play none none reverse' },
   });
   $$('.st__q, .st__p', sec).forEach((p) => {
     const ws = $$('.w', p);
@@ -312,7 +358,6 @@ function buildStage(sec: HTMLElement, mode: Mode) {
 /** Infinite, scroll-independent motion that gives each stage its own personality. */
 function ambient(n: number, sec: HTMLElement) {
   if (n === 2) {
-    gsap.to($('.yy', sec), { rotation: 360, duration: 90, repeat: -1, ease: 'none' });
   }
   if (n === 4) {
     gsap.to($('.m1', sec), { xPercent: 12, duration: 18, yoyo: true, repeat: -1, ease: 'sine.inOut' });
@@ -347,7 +392,7 @@ function buildEpilogue(sec: HTMLElement, mode: Mode) {
   ScrollTrigger.create({ id: 'epilogue', trigger: sec, start: 'top top', end: 'bottom top' });
   if (mode === 'reduce') return;
 
-  gsap.from([$('.st__eyebrow', sec), $('.st__title', sec)], {
+  gsap.from($('.st__title', sec), {
     autoAlpha: 0,
     y: 26,
     duration: 1.2,
