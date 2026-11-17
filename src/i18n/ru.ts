@@ -7,6 +7,8 @@ export const ru: Locale = {
   ui: {
     loading: 'Пробуждение',
     enter: 'Войти',
+    musicOn: 'Выключить музыку',
+    musicOff: 'Включить музыку',
     scroll: 'Листайте',
     stage: 'Стадия',
     epilogue: 'Эпилог',

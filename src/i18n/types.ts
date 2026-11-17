@@ -18,6 +18,8 @@ export interface Locale {
   ui: {
     loading: string;
     enter: string;
+    musicOn: string;
+    musicOff: string;
     scroll: string;
     stage: string;
     epilogue: string;

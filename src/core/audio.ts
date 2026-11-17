@@ -85,13 +85,44 @@ function apply() {
   if (el) el.volume = Math.min(1, level.v * MUSIC_VOLUME);
 }
 
-/** Call from a user gesture (the Enter button). */
+/**
+ * Music already plays on the intro screen. Browsers block sound before a gesture, so try at once
+ * and, if refused, start on the first click / key / touch (e.g. picking a language).
+ */
+export function primeIntroMusic(): void {
+  if (!soundPref() || !src) return;
+  const go = () => {
+    if (!on) void enable();
+  };
+  const el0 = new Audio(src);
+  el0.loop = true;
+  el = el0;
+  el0.volume = 0;
+  el0.play().then(
+    () => go(),
+    () => {
+      // any first gesture (tap, click, key) starts the music; the toggle button handles its own click
+      const evs = ['pointerdown', 'keydown', 'touchstart'];
+      const once = (e: Event) => {
+        if ((e.target as HTMLElement | null)?.closest?.('#pre-snd, #snd')) {
+          evs.forEach((n) => removeEventListener(n, once, true));
+          return;
+        }
+        evs.forEach((n) => removeEventListener(n, once, true));
+        go();
+      };
+      evs.forEach((n) => addEventListener(n, once, true));
+    },
+  );
+}
+
+/** Called from the Enter button: music continues (or stays off if the visitor switched it off). */
 export async function startAudio(): Promise<void> {
   if (!soundPref()) {
     paintButton(false);
     return;
   }
-  await enable();
+  if (!on) await enable();
 }
 
 async function enable() {
@@ -130,23 +161,29 @@ async function disable() {
 }
 
 function paintButton(v: boolean) {
-  const b = document.getElementById('snd');
-  if (!b) return;
-  b.setAttribute('aria-pressed', String(v));
-  b.classList.toggle('on', v);
+  for (const id of ['snd', 'pre-snd']) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    b.setAttribute('aria-pressed', String(v));
+    b.classList.toggle('on', v);
+  }
+  window.dispatchEvent(new CustomEvent('soundchange', { detail: v }));
 }
 
 export function bindSoundButton(label: (on: boolean) => string) {
-  const b = document.getElementById('snd');
-  if (!b) return;
-  b.addEventListener('click', async () => {
-    if (on) {
-      savePref(false);
-      await disable();
-    } else {
-      savePref(true);
-      await enable();
-    }
-    b.setAttribute('aria-label', label(on));
-  });
+  for (const id of ['snd', 'pre-snd']) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (on) {
+        savePref(false);
+        await disable();
+      } else {
+        savePref(true);
+        await enable();
+      }
+      b.setAttribute('aria-label', label(on));
+    });
+  }
 }

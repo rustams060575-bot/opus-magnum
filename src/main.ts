@@ -6,8 +6,20 @@ import '@fontsource/montserrat/latin-700.css';
 import '@fontsource/montserrat/cyrillic-500.css';
 import '@fontsource/montserrat/cyrillic-600.css';
 import '@fontsource/montserrat/cyrillic-700.css';
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-500.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/cyrillic-400.css';
+import '@fontsource/inter/cyrillic-500.css';
+import '@fontsource/inter/cyrillic-600.css';
 import '@fontsource/libre-franklin/latin-500.css';
 import '@fontsource/libre-franklin/latin-600.css';
+import '@fontsource/cormorant-garamond/latin-600.css';
+import '@fontsource/cormorant-garamond/latin-700.css';
+import '@fontsource/cormorant-garamond/cyrillic-600.css';
+import '@fontsource/cormorant-garamond/cyrillic-700.css';
+import '@fontsource/cormorant-garamond/latin-600-italic.css';
+import '@fontsource/cormorant-garamond/cyrillic-600-italic.css';
 import '@fontsource/cormorant-garamond/latin-500.css';
 import '@fontsource/cormorant-garamond/latin-500-italic.css';
 import '@fontsource/cormorant-garamond/cyrillic-500.css';
@@ -22,7 +34,7 @@ import Lenis from 'lenis';
 import { detectLang, locales, order, saveLang } from './i18n';
 import { startBeat, setBpm, registerPulse, registerGlow } from './core/beat';
 import { Particles } from './core/particles';
-import { bindSoundButton, initAudio, startAudio } from './core/audio';
+import { bindSoundButton, initAudio, primeIntroMusic, startAudio } from './core/audio';
 import { renderApp } from './scenes/render';
 import { destroyScenes, initScenes, playIntro, sceneStart, type Hooks } from './scenes/animate';
 import { scenes, type Mood } from './scenes/config';
@@ -94,10 +106,16 @@ function buildLangButtons() {
   );
 }
 
+function paintSoundLabel(on = document.getElementById('snd')?.classList.contains('on') ?? false) {
+  const t = document.getElementById('pre-snd-t');
+  if (t) t.textContent = on ? locales[lang].ui.musicOn : locales[lang].ui.musicOff;
+}
+
 function paintPreloaderText() {
   const L = locales[lang];
   const label = document.getElementById('pre-label');
   const enterLabel = document.querySelector('#pre-enter .pre__label');
+  paintSoundLabel();
   if (label) label.textContent = L.ui.loading;
   if (enterLabel) enterLabel.textContent = L.ui.enter;
   document.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
@@ -233,8 +251,12 @@ async function enter() {
 }
 
 async function boot() {
-  void initAudio();
-  bindSoundButton((on) => (on ? 'Sound on' : 'Sound off'));
+  addEventListener('soundchange', (e) => paintSoundLabel((e as CustomEvent<boolean>).detail));
+  void initAudio().then(() => primeIntroMusic());
+  bindSoundButton((on) => {
+    paintSoundLabel(on);
+    return on ? 'Sound on' : 'Sound off';
+  });
   buildLangButtons();
   buildRail();
   paintPreloaderText();
@@ -253,7 +275,7 @@ async function boot() {
   gsap.to('.pre__pct', { opacity: 0, duration: 0.5 });
   gsap.to(ui, { opacity: 1, height: 'auto', duration: 0.9, ease: 'power2.out' });
   const btn = $<HTMLButtonElement>('#pre-enter');
-  btn.addEventListener('click', enter);
+  btn.addEventListener('click', () => void enter());
   btn.focus({ preventScroll: true });
 }
 

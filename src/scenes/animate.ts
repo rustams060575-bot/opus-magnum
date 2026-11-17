@@ -82,6 +82,49 @@ function enterParallax(sec: HTMLElement, mode: Mode) {
   }
 }
 
+type Enter = 'flipX' | 'swingR' | 'swingL' | 'depth' | 'card';
+const HEART_ENTERS: Enter[] = ['flipX', 'swingR', 'depth', 'swingL'];
+
+/**
+ * How a scene arrives over the previous one. Hearts fly in as 3D (page-flip, door swing, fly-through);
+ * stages open as a 2D rounded card. The two alternate, so the journey never feels like a slideshow.
+ */
+function enterTransition(sec: HTMLElement, mode: Mode) {
+  if (mode === 'reduce' || sec.classList.contains('hero')) return;
+  const heart = sec.classList.contains('hs');
+  const n = Number(sec.id.split('-')[1] || 1);
+  const kind: Enter = heart ? HEART_ENTERS[(n - 1) % HEART_ENTERS.length] : 'card';
+  if (!heart && mode !== 'desktop') return;
+  const d = mode === 'desktop' ? 1 : 0.55;
+  const st = { trigger: stackOf(sec), start: 'top bottom', end: 'top top', scrub: true, invalidateOnRefresh: true };
+  const P = 1500;
+  const from: gsap.TweenVars = {};
+  const to: gsap.TweenVars = { ease: 'power2.out', scrollTrigger: st };
+  switch (kind) {
+    case 'flipX':
+      Object.assign(from, { rotationX: 34 * d, transformPerspective: P, transformOrigin: '50% 0%' });
+      Object.assign(to, { rotationX: 0 });
+      break;
+    case 'swingR':
+      Object.assign(from, { rotationY: -32 * d, transformPerspective: P, transformOrigin: '0% 50%' });
+      Object.assign(to, { rotationY: 0 });
+      break;
+    case 'swingL':
+      Object.assign(from, { rotationY: 32 * d, transformPerspective: P, transformOrigin: '100% 50%' });
+      Object.assign(to, { rotationY: 0 });
+      break;
+    case 'depth':
+      Object.assign(from, { z: -900 * d, rotationX: 10 * d, transformPerspective: P, transformOrigin: '50% 100%' });
+      Object.assign(to, { z: 0, rotationX: 0 });
+      break;
+    case 'card':
+      Object.assign(from, { clipPath: 'inset(9% 7% 9% 7% round 44px)' });
+      Object.assign(to, { clipPath: 'inset(0% 0% 0% 0% round 0px)' });
+      break;
+  }
+  gsap.fromTo(sec, from, to);
+}
+
 /** Only scenes near the viewport get a GPU layer (will-change); the rest stay cheap. */
 function warm(sec: HTMLElement) {
   ScrollTrigger.create({
@@ -355,8 +398,9 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
     const nextRig = $('.hc-rig', next);
     const prevRig = $('.hc-rig', prev);
     tl.to(next, { clipPath: 'circle(88% at 50% 50%)', duration: 1.7, ease: 'power3.inOut' }, t0);
-    if (prevRig) tl.to(prevRig, { scale: 1.12, duration: 1.7, ease: 'power2.in' }, t0);
-    if (nextRig) tl.fromTo(nextRig, { scale: 0.62 }, { scale: 1, duration: 2.0, ease: 'expo.out' }, t0 + 0.15);
+    const dir = i % 2 ? -1 : 1;
+    if (prevRig) tl.to(prevRig, { scale: 1.12, rotationY: 28 * dir, transformPerspective: 1200, duration: 1.7, ease: 'power2.in' }, t0);
+    if (nextRig) tl.fromTo(nextRig, { scale: 0.62, rotationY: -70 * dir, z: -300, transformPerspective: 1200 }, { scale: 1, rotationY: 0, z: 0, duration: 2.2, ease: 'expo.out' }, t0 + 0.15);
     const nextHalo = $('.hc-halo', next);
     if (nextHalo) tl.fromTo(nextHalo, { scale: 0.4 }, { scale: 1.12, duration: 2.0, ease: 'power2.out' }, t0 + 0.1);
     tl.to({}, { duration: 1.0 }, t0 + 2.0);
@@ -366,8 +410,24 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
   // a slow push-in on every picture for the whole dwell, so nothing sits still
   const slow = $$('.hc-bg, .hf', sec);
   if (slow.length) tl.fromTo(slow, { scale: 1 }, { scale: 1.12, duration: tl.duration(), ease: 'none' }, 0);
+  // 3D life: the heart tilts toward the cursor and drifts, so it reads as an object in space
+  if (mode === 'desktop' && matchMedia('(pointer: fine)').matches) {
+    $$('.hc-heart', sec).forEach((h, i) => {
+      gsap.set(h, { transformPerspective: 1100 });
+      const qy = gsap.quickTo(h, 'rotationY', { duration: 1.2, ease: 'power3' });
+      const qx = gsap.quickTo(h, 'rotationX', { duration: 1.2, ease: 'power3' });
+      const on = (e: PointerEvent) => {
+        qy((e.clientX / innerWidth - 0.5) * 18);
+        qx(-(e.clientY / innerHeight - 0.5) * 12);
+      };
+      addEventListener('pointermove', on, { passive: true });
+      offs.push(() => removeEventListener('pointermove', on));
+      gsap.to(h, { y: i % 2 ? -10 : 10, duration: 5 + i, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    });
+  }
   cover(sec, mode);
   enterParallax(sec, mode);
+  enterTransition(sec, mode);
 }
 
 /* ------------------------------------------------------------------ */
@@ -454,6 +514,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     tl.to(art, { opacity: 0.35, scale: 1.05, duration: 2.4, ease: 'none' }, T - 2.4);
     cover(sec, mode);
     enterParallax(sec, mode);
+    enterTransition(sec, mode);
     return;
   }
 

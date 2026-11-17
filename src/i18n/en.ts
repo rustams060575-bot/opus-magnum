@@ -7,6 +7,8 @@ export const en: Locale = {
   ui: {
     loading: 'Awakening',
     enter: 'Enter',
+    musicOn: 'Turn music off',
+    musicOff: 'Turn music on',
     scroll: 'Scroll',
     stage: 'Stage',
     epilogue: 'Epilogue',
