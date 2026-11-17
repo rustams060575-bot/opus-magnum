@@ -1,0 +1,55 @@
+# Opus Magnum — AR Design
+
+An immersive, multilingual (EN · RU · ES) scroll experience about Jungian individuation and alchemy:
+seven stages from the Nigredo to the Mandala of Wholeness, plus an epilogue.
+Vite + TypeScript, GSAP ScrollTrigger, Lenis. No framework.
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # type-check + production build into dist/
+npm run preview    # serve the build
+```
+
+## How it is built
+
+| Path | What |
+| --- | --- |
+| `src/i18n/*.ts` | All copy per language (`en`, `ru`, `es`). |
+| `src/scenes/config.ts` | The journey, in order: hero → heart interludes → stages → epilogue. Per scene: heartbeat BPM, particle mood, accent colour. |
+| `src/scenes/render.ts` | Turns config + locale into HTML. |
+| `src/scenes/animate.ts` | Scroll choreography (pinned scenes, word-by-word "reading light", heart crossfades, finale). |
+| `src/core/beat.ts` | The global heartbeat clock. Everything that pulses subscribes to it; BPM slows from 92 → 50 across the journey. |
+| `src/core/particles.ts` | Ambient canvas particles (embers, ash, snow, stars, gold dust). |
+| `src/styles/main.css` | All styling. Stage art is `.s1-…` to `.s7-…`. |
+| `assets-src/` | Raw images exported from Figma. |
+| `scripts/optimize_images.py` | `python scripts/optimize_images.py` → WebP in `public/img/`. |
+
+## Add a language
+
+1. Copy `src/i18n/en.ts` to `src/i18n/fr.ts`, translate, change `code`, `label`, `name`.
+2. Register it in `src/i18n/index.ts` (`locales = { en, ru, es, fr }`).
+
+The switch buttons, `<html lang>`, saved choice and `?lang=fr` all pick it up automatically.
+
+## Add a heart interlude
+
+1. Put the picture in `assets-src/`, add it to `MAP` in `scripts/optimize_images.py`, run the script.
+2. Add a `heart` entry to `scenes` in `src/scenes/config.ts`. Two layers = the heart transforms into the next one while scrolling.
+   `kind: 'portal'` (glowing oval, for light backgrounds) or `'soft'` (feathered edges, for dark backgrounds).
+
+## Behaviour notes
+
+- Desktop: scenes are pinned and scrubbed. Mobile (< 900px): native scroll, art on top, text below.
+- `prefers-reduced-motion`: no pinning or scrubbing, all text visible.
+- The build uses relative asset paths (`base: './'`), so it works on Vercel and on GitHub Pages sub-paths.
+
+## Deploy
+
+Vercel: import the repo, framework preset *Vite*, build `npm run build`, output `dist`.
+GitHub Pages: publish the `dist` folder (e.g. with a Pages workflow).
+
+## Still to add (from the Figma file)
+
+Heart images from frames `63:75`, `63:76`, `63:80`, `64:116`, `64:117` and the epilogue backgrounds `65:132`, `65:133`
+could not be exported yet (Figma MCP call limit on the Starter plan). They slot straight into `config.ts` once exported.
