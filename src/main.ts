@@ -37,14 +37,21 @@ import Lenis from 'lenis';
 import { detectLang, extraFor, locales, order, saveLang } from './i18n';
 import { startBeat, setBpm, registerPulse, registerGlow } from './core/beat';
 import { Particles } from './core/particles';
-import { bindSoundButton, initAudio, primeIntroMusic, setBrightness, setSoftVolume, startAudio } from './core/audio';
+import { bindSoundButton, initAudio, primeSound, repaintSound, setBrightness, setSoftVolume, softTick, startAudio } from './core/audio';
 import { renderApp } from './scenes/render';
 import { destroyScenes, initScenes, playIntro, sceneStart, type Hooks } from './scenes/animate';
 import { scenes, type Mood } from './scenes/config';
 import { isSoft, setSoft } from './core/prefs';
-import { initPanel, openDiary, openMap, openPractice } from './ui/panel';
+import { close as closePanel, initPanel, openDiary, openMap, openPractice } from './ui/panel';
+import { closePulse, initPulse, openPulse } from './ui/pulse';
 import { initGlossaryDismiss } from './ui/glossary';
 import { stopSpeech, toggleSpeech, speechSupported } from './ui/speech';
+import { initAgent, openAgent, resetAgent } from './ui/agent';
+import { agentFor } from './i18n/agent';
+import { getNotes, setNote } from './ui/store';
+import { windowImages, stopWindowing } from './core/memory';
+import { clearScroll, saveScroll, savedScroll } from './core/session';
+import { chapterTick, initTouchPlay } from './ui/touch';
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
@@ -60,10 +67,30 @@ let prefetched = false;
 root.lang = lang;
 
 /* ---------------- smooth scroll ---------------- */
-const lenis = new Lenis({ lerp: 0.085, wheelMultiplier: 0.95, smoothWheel: true });
+/**
+ * Desktop: Lenis smooth wheel scrolling. Touch devices: plain native scrolling — a JS scroll layer on top of
+ * iOS/Android momentum scrolling and the collapsing address bar made the page jump; native is rock solid.
+ */
+const touchDevice = matchMedia('(pointer: coarse)').matches || innerWidth < 900;
+interface Scroller {
+  stop(): void;
+  start(): void;
+  scrollTo(y: number, o?: { duration?: number; immediate?: boolean; force?: boolean }): void;
+}
+let lenis: Scroller;
+if (!touchDevice) {
+  const L = new Lenis({ lerp: 0.085, wheelMultiplier: 0.95, smoothWheel: true });
+  L.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((t) => L.raf(t * 1000));
+  lenis = L;
+} else {
+  lenis = {
+    stop: () => root.classList.add('scroll-lock'),
+    start: () => root.classList.remove('scroll-lock'),
+    scrollTo: (y, o) => scrollTo({ top: y, behavior: o?.immediate ? 'auto' : 'smooth' }),
+  };
+}
 lenis.stop();
-lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add((t) => lenis.raf(t * 1000));
 gsap.ticker.lagSmoothing(0);
 
 /* ---------------- fixed chrome ---------------- */
@@ -93,6 +120,7 @@ function buildRail() {
 }
 
 let railStage = 0;
+let sceneBpm = 80;
 function paintRail(n: number) {
   railStage = n;
   railItems.forEach((li, i) => {
@@ -140,6 +168,16 @@ function paintSoundLabel(on = document.getElementById('snd')?.classList.contains
 
 function paintUiLabels() {
   const X = extraFor(lang).ui;
+  const pu = document.getElementById('pulse-btn');
+  if (pu) {
+    pu.setAttribute('aria-label', X.pulseBtn);
+    pu.title = X.pulseBtn;
+  }
+  const ag = document.getElementById('agent-btn');
+  if (ag) {
+    ag.setAttribute('aria-label', agentFor(lang).ui.open);
+    ag.title = agentFor(lang).ui.open;
+  }
   const m = document.getElementById('map-btn');
   const sf = document.getElementById('soft-btn');
   if (m) {
@@ -154,6 +192,7 @@ function paintUiLabels() {
 }
 
 function paintPreloaderText() {
+  repaintSound();
   const L = locales[lang];
   const label = document.getElementById('pre-label');
   const enterLabel = document.querySelector('#pre-enter .pre__label');
@@ -170,18 +209,23 @@ const hooks: Hooks = {
   activate(def, el) {
     currentId = def.id === 'epilogue' && el.id === 'finale' ? 'finale' : def.id;
     const m = def.mood;
+    sceneBpm = m.bpm;
     setBpm(m.bpm);
-    particles.setMode(m.particles);
+    if (!touchDevice) particles.setMode(m.particles);
     root.style.setProperty('--accent', m.accent);
     if (el.id !== 'finale') setUi(m.ui);
-    if (def.type === 'stage') paintRail(def.n);
-    else if (def.type === 'epilogue') paintRail(8);
+    if (def.type === 'stage') {
+      if (entered && railStage !== def.n) chapterTick();
+      paintRail(def.n);
+    } else if (def.type === 'epilogue') paintRail(8);
     else if (def.type === 'hero') paintRail(0);
   },
 };
 
 function mount() {
   app.innerHTML = renderApp(locales[lang]);
+  if (touchDevice) windowImages(app);
+  else stopWindowing();
   if (prefetched) app.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((i) => (i.loading = 'eager'));
   initScenes(hooks);
   ScrollTrigger.refresh();
@@ -200,6 +244,8 @@ async function switchLang(code: string) {
     return;
   }
   stopSpeech();
+  closePulse();
+  resetAgent();
   await remount();
 }
 
@@ -255,14 +301,44 @@ initPanel({
     if (y != null) lenis.scrollTo(y, { duration: 2.2 });
   },
   current: () => railStage,
+  pulse: () => {
+    closePanel();
+    setTimeout(openPulse, 350);
+  },
+});
+initPulse({
+  X: () => extraFor(lang),
+  stop: () => lenis.stop(),
+  start: () => {
+    if (entered) lenis.start();
+  },
+  restoreBpm: () => setBpm(sceneBpm, 2.4),
+  current: () => railStage,
+  openNote: (n) => openPractice(n),
+});
+initAgent({
+  lang: () => lang,
+  stop: () => lenis.stop(),
+  start: () => {
+    if (entered) lenis.start();
+  },
+  stage: (n) => ({ title: locales[lang].stages[n - 1].title.split('.')[0], question: extraFor(lang).practice[n - 1] ?? '' }),
+  current: () => railStage,
+  saveNote: (stage, text) => {
+    const k = stage >= 1 && stage <= 7 ? String(stage) : 'letter';
+    const old = getNotes()[k] ?? '';
+    setNote(k, old ? `${old}\n\n${text}` : text);
+  },
 });
 initGlossaryDismiss();
 app.addEventListener('click', (e) => {
-  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-practice], [data-listen], [data-diary], [data-map]');
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-practice], [data-listen], [data-diary], [data-map], [data-pulse-open], [data-agent]');
   if (!t) return;
-  if (t.dataset.practice) openPractice(Number(t.dataset.practice));
+  if (t.dataset.agent) openAgent(Number(t.dataset.agent));
+  else if (t.dataset.practice) openPractice(Number(t.dataset.practice));
   else if (t.dataset.diary !== undefined) openDiary();
   else if (t.dataset.map !== undefined) openMap();
+  else if (t.dataset.pulseOpen !== undefined) openPulse();
   else if (t.dataset.listen) {
     const n = Number(t.dataset.listen);
     const st = locales[lang].stages[n - 1];
@@ -271,6 +347,8 @@ app.addEventListener('click', (e) => {
   }
 });
 document.getElementById('map-btn')?.addEventListener('click', () => openMap());
+document.getElementById('agent-btn')?.addEventListener('click', () => openAgent());
+document.getElementById('pulse-btn')?.addEventListener('click', () => openPulse());
 document.getElementById('soft-btn')?.addEventListener('click', () => void toggleSoft());
 if (!speechSupported) document.documentElement.classList.add('no-speech');
 
@@ -301,7 +379,7 @@ function waitImg(img: HTMLImageElement): Promise<void> {
 }
 
 async function preload(): Promise<void> {
-  const critical = Array.from(app.querySelectorAll<HTMLImageElement>('.hero img, #heart-1 img'));
+  const critical = Array.from(app.querySelectorAll<HTMLImageElement>(touchDevice ? '.hero img' : '.hero img, #heart-1 img'));
   const fonts = ['700 40px "Cinzel Decorative"', '700 20px Montserrat', '500 16px "Libre Franklin"'].map((f) =>
     document.fonts.load(f, 'Opus Magnum').catch(() => undefined),
   );
@@ -321,6 +399,8 @@ async function preload(): Promise<void> {
 }
 
 function prefetchRest() {
+  // phones: keep images lazy — decoding every frame up front exhausts memory and the browser reloads the page
+  if (touchDevice) return;
   const imgs = Array.from(app.querySelectorAll<HTMLImageElement>('img[loading="lazy"]'));
   let i = 0;
   const step = () => {
@@ -331,11 +411,19 @@ function prefetchRest() {
   setTimeout(step, 1200);
 }
 
-async function enter() {
+async function enter(fast = false) {
   if (entered) return;
   entered = true;
   const pre = $('#preloader');
   startBeat();
+  if (fast) {
+    // the page was reloaded mid-journey: no intro, straight back to where the visitor was
+    pre.remove();
+    playIntro();
+    lenis.start();
+    prefetchRest();
+    return;
+  }
   void startAudio();
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   gsap.to('.pre__content', { opacity: 0, scale: 1.06, duration: 0.7, ease: 'power2.in' });
@@ -352,11 +440,10 @@ async function enter() {
 
 async function boot() {
   addEventListener('soundchange', (e) => paintSoundLabel((e as CustomEvent<boolean>).detail));
-  void initAudio().then(() => primeIntroMusic());
-  bindSoundButton((on) => {
-    paintSoundLabel(on);
-    return on ? 'Sound on' : 'Sound off';
-  });
+  void initAudio();
+  bindSoundButton();
+  // the heartbeat sounds from the intro on (at the first gesture where autoplay is blocked); music is the visitor's choice
+  primeSound();
   buildLangButtons();
   buildRail();
   paintPreloaderText();
@@ -377,10 +464,46 @@ async function boot() {
   gsap.to('.pre__pct', { opacity: 0, duration: 0.5 });
   gsap.to(ui, { opacity: 1, height: 'auto', duration: 0.9, ease: 'power2.out' });
   const btn = $<HTMLButtonElement>('#pre-enter');
+  const back = savedScroll();
+  if (back != null && back > 300) {
+    void enter(true);
+    setTimeout(() => {
+      ScrollTrigger.refresh();
+      lenis.scrollTo(back, { immediate: true, force: true });
+      ScrollTrigger.update();
+    }, 250);
+    return;
+  }
   btn.addEventListener('click', () => void enter());
   btn.focus({ preventScroll: true });
 }
 
+// remember where we are (cheap, throttled) so a browser reload never throws the visitor back to the intro
+{
+  let t = 0;
+  addEventListener(
+    'scroll',
+    () => {
+      if (!entered || t) return;
+      t = window.setTimeout(() => {
+        t = 0;
+        saveScroll(scrollY);
+      }, 400);
+    },
+    { passive: true },
+  );
+}
+// taps on the artwork ripple; the first heart answers with a beat
+initTouchPlay(
+  app,
+  () => getComputedStyle(root).getPropertyValue('--accent').trim() || '#ff7a3c',
+  () => {
+    const h = document.querySelector<HTMLElement>('.hero__heart');
+    if (h) gsap.fromTo(h, { scale: 1.08 }, { scale: 1, duration: 0.6, ease: 'elastic.out(1,0.4)', overwrite: 'auto' });
+    softTick();
+  },
+);
+void clearScroll;
 history.scrollRestoration = 'manual';
 scrollTo(0, 0);
 void scenes;

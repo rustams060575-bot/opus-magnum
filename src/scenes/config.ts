@@ -4,7 +4,8 @@ import cutMeta from './cutouts.json';
 
 /** Public-folder image helper (works on Vercel root and GitHub Pages sub-path). */
 export const img = (name: string): string => `${import.meta.env.BASE_URL}img/${name}.webp`;
-export const frameUrl = (name: string): string => img(`frames/${name}`);
+const touch = typeof matchMedia !== 'undefined' && (matchMedia('(pointer: coarse)').matches || innerWidth < 900);
+export const frameUrl = (name: string): string => img(`${touch ? 'frames-m' : 'frames'}/${name}`);
 export const cutUrl = (name: string): string => img(`cut/${name}`);
 export const bgUrl = (name: string): string => img(`bg/${name}`);
 /** width / height of a trimmed cut-out */
@@ -34,6 +35,8 @@ export interface HeartLayer {
   behind?: string;
   /** mobile scale for `frame` layers so the whole heart fits a portrait screen */
   ms?: number;
+  /** the picture is a clean cut-out: no ambient background copy, it floats on the scene colour */
+  nobg?: boolean;
 }
 
 export type SceneDef =
@@ -57,95 +60,35 @@ const M = (bpm: number, particles: ParticleMode, accent: string, ui: 'light' | '
 export const scenes: SceneDef[] = [
   { type: 'hero', id: 'hero', dwell: 1.5, mood: M(84, 'dust', '#ff5a2a') },
 
-  // — Nigredo —
+  // — The heart: ONE interlude, two pictures that melt into each other (chained → half-gold) —
   {
     type: 'heart',
     id: 'heart-1',
-    dwell: 2.4,
+    dwell: 2.6,
     layers: [
-      { src: 'h1-chained', kind: 'cut', glow: '#b8352c', ms: 1.0 },
-      { src: 'h1-caged', kind: 'cut', glow: '#e0a24a', ms: 1.0 },
+      { src: 'heart-chained', kind: 'cut', glow: '#c0283a', ms: 1.0, nobg: true },
+      { src: 'heart-gold', kind: 'cut', glow: '#f0c04a', ms: 1.0, nobg: true },
     ],
-    mood: M(88, 'ember', '#ff4a2a'),
+    mood: M(80, 'ember', '#ff4a2a'),
   },
   { type: 'stage', id: 'stage-1', dwell: 3.6, n: 1, side: 'right', mood: M(92, 'ember', '#ff6a2a', 'dark') },
 
   // — Anima & Animus —
-  {
-    type: 'heart',
-    id: 'heart-2',
-    dwell: 2.4,
-    layers: [
-      { src: 'h2-lava', kind: 'cut', glow: '#ff6a1f', ms: 1.0 },
-      { src: 'heart-stone', kind: 'soft', glow: '#ffb44a', behind: 'crescent' },
-    ],
-    mood: M(82, 'ember', '#ff7a2a'),
-  },
   { type: 'stage', id: 'stage-2', dwell: 3.6, n: 2, side: 'left', mood: M(76, 'ash', '#ff5a3c') },
 
   // — The Wise Old Man —
-  {
-    type: 'heart',
-    id: 'heart-3',
-    dwell: 2.4,
-    layers: [
-      { src: 'h3-hall', kind: 'cut', glow: '#ffc766', ms: 0.9 },
-      { src: 'h3-gold', kind: 'cut', glow: '#e8b84a', ms: 0.95 },
-    ],
-    mood: M(70, 'gold', '#ffc766'),
-  },
   { type: 'stage', id: 'stage-3', dwell: 3.6, n: 3, side: 'left', mood: M(66, 'gold', '#ffb347') },
 
   // — The Hero’s Path —
-  {
-    type: 'heart',
-    id: 'heart-4',
-    dwell: 2.4,
-    layers: [
-      { src: 'h4-fire', kind: 'cut', glow: '#ff7a2e', ms: 0.8 },
-      { src: 'h4-book', kind: 'cut', glow: '#ffb04a', ms: 0.8 },
-    ],
-    mood: M(72, 'ember', '#ff8a3a'),
-  },
   { type: 'stage', id: 'stage-4', dwell: 3.6, n: 4, side: 'right', mood: M(66, 'snow', '#9fd4ff') },
 
   // — Power —
-  {
-    type: 'heart',
-    id: 'heart-5',
-    dwell: 2.4,
-    layers: [
-      { src: 'h5-ecg', kind: 'cut', glow: '#ff3a2a', ms: 0.8 },
-      { src: 'h5-flame', kind: 'cut', glow: '#ff6a3a', ms: 0.8 },
-    ],
-    mood: M(78, 'ember', '#ff5a3a'),
-  },
   { type: 'stage', id: 'stage-5', dwell: 3.6, n: 5, side: 'left', mood: M(64, 'star', '#5aa0ff') },
 
   // — The Void —
-  {
-    type: 'heart',
-    id: 'heart-6',
-    dwell: 2.4,
-    layers: [
-      { src: 'h6-lapis', kind: 'cut', glow: '#6ab0ff', ms: 0.8 },
-      { src: 'h6-blue', kind: 'cut', glow: '#8ac4ff', ms: 0.9 },
-    ],
-    mood: M(60, 'star', '#6ab0ff'),
-  },
   { type: 'stage', id: 'stage-6', dwell: 3.6, n: 6, side: 'left', mood: M(50, 'star', '#ffb45a') },
 
   // — The Self —
-  {
-    type: 'heart',
-    id: 'heart-7',
-    dwell: 2.4,
-    layers: [
-      { src: 'h7-white', kind: 'cut', glow: '#ffd37a', ms: 0.8 },
-      { src: 'h7-flowers', kind: 'cut', glow: '#ff4d5e', ms: 0.8 },
-    ],
-    mood: M(56, 'gold', '#ffd37a', 'dark'),
-  },
   { type: 'stage', id: 'stage-7', dwell: 3.6, n: 7, side: 'left', mood: M(54, 'gold', '#ffd27a') },
 
   // — Epilogue: the conjunction of opposites —

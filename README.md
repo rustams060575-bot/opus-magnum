@@ -70,3 +70,10 @@ GitHub Pages: publish the `dist` folder (e.g. with a Pages workflow).
 - Gentle mode (`src/core/prefs.ts`): no motion, larger text, quieter music — reuses the reduced-motion build.
 - "Light conquers darkness": `#dawn` warms the screen and the music low-pass filter opens as scroll progress grows.
 - Notes live in `localStorage` only; nothing is sent anywhere.
+
+## v3.2 (local branch `v3.2-mobile-agent`)
+
+- **Phones:** native scrolling, no 3D flips, images are loaded only near the viewport and released again (`src/core/memory.ts`), half-size hands frames (`public/img/frames-m`), no particles; the scroll position survives a browser reload (`src/core/session.ts`) so the visitor never lands back on the intro. Text is fully lit, ≥19.5 px on a solid surface.
+- **One flowing heart:** a single heart interlude (chained → caged → hall → gold) instead of three; the hands interlude closes the journey.
+- **Parallax** on phones (art and background drift against the page) and the existing pointer parallax on desktop; tap ripples + haptic ticks (`src/ui/touch.ts`).
+- **The guide (agent-psychologist):** `src/agent/` + `src/ui/agent.ts` + `src/i18n/agent.ts`. Built-in scripted guide today, pluggable agent later: see `docs/AGENT_INTEGRATION.md`.

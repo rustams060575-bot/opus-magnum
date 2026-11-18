@@ -1,7 +1,31 @@
 import { extraFor, type Locale } from '../i18n';
+import { agentFor } from '../i18n/agent';
 import { img, frameUrl, frameBg, cutUrl, bgUrl, cutAspect, ROMAN, scenes, type SceneDef, type HeartLayer } from './config';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+const STAR = `<svg class="s5-svg" viewBox="-300 -300 600 600" aria-hidden="true">
+  <defs>
+    <radialGradient id="st-g"><stop offset="0" stop-color="#fff"/><stop offset=".1" stop-color="#d8ecff"/><stop offset=".3" stop-color="#5aa6ff" stop-opacity=".6"/><stop offset=".7" stop-color="#1b4fd0" stop-opacity=".16"/><stop offset="1" stop-color="#0a2a8a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="st-r" x1="0" x2="1"><stop offset="0" stop-color="#9fd0ff" stop-opacity="0"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#9fd0ff" stop-opacity="0"/></linearGradient>
+    <filter id="st-b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <circle r="296" fill="url(#st-g)"/>
+  <g class="s5-spin" opacity=".55">
+    <polygon points="-250,0 0,-3 250,0 0,3" fill="url(#st-r)" transform="rotate(22)"/>
+    <polygon points="-250,0 0,-3 250,0 0,3" fill="url(#st-r)" transform="rotate(67)"/>
+    <polygon points="-250,0 0,-3 250,0 0,3" fill="url(#st-r)" transform="rotate(112)"/>
+    <polygon points="-250,0 0,-3 250,0 0,3" fill="url(#st-r)" transform="rotate(157)"/>
+  </g>
+  <g class="s5-rays">
+    <polygon points="-296,0 0,-7 296,0 0,7" fill="url(#st-r)"/>
+    <polygon points="-296,0 0,-7 296,0 0,7" fill="url(#st-r)" transform="rotate(90)"/>
+    <polygon points="-170,0 0,-4 170,0 0,4" fill="url(#st-r)" transform="rotate(45)"/>
+    <polygon points="-170,0 0,-4 170,0 0,4" fill="url(#st-r)" transform="rotate(135)"/>
+  </g>
+  <circle r="46" fill="#bfe0ff" opacity=".8" filter="url(#st-b)"/>
+  <circle r="15" fill="#fff"/>
+</svg>`;
 
 function hero(s: Extract<SceneDef, { type: 'hero' }>, L: Locale): string {
   return `
@@ -41,8 +65,8 @@ function heartLayer(l: HeartLayer, i: number): string {
   if (l.kind === 'cut') {
     const ar = cutAspect(l.src);
     return `
-<figure class="hl hl--cut" data-i="${i}" style="--glow:${l.glow};--bg:${frameBg(l.src)};--ar:${ar}">
-  <img class="hc-bg" src="${bgUrl(l.src)}" alt="" loading="lazy" decoding="async">
+<figure class="hl hl--cut${l.nobg ? ' hl--clean' : ''}" data-i="${i}" style="--glow:${l.glow};--bg:${frameBg(l.src)};--ar:${ar}">
+  ${l.nobg ? '' : `<img class="hc-bg" src="${bgUrl(l.src)}" alt="" loading="lazy" decoding="async">`}
   <i class="hc-halo"></i>
   <div class="hc-rig"><img class="hc-heart" src="${cutUrl(l.src)}" alt="" loading="lazy" decoding="async"></div>
   <i class="hc-vig"></i>
@@ -95,15 +119,15 @@ const STAGE_ART: Record<number, { bg: string; art: string }> = {
   },
   5: {
     bg: `<div class="s5-sky"></div><div class="st__scrim st__scrim--l st__scrim--navy"></div>`,
-    art: `<img class="s5-horizon" src="${img('horizon-blue')}" alt="" loading="lazy" decoding="async"><div class="s5-star"><img src="${img('star')}" alt="" loading="lazy" decoding="async"></div>`,
+    art: `<img class="s5-horizon" src="${img('horizon-blue')}" alt="" loading="lazy" decoding="async"><div class="s5-wrap"><div class="s5-grow">${STAR}</div></div>`,
   },
   6: {
     bg: `<div class="s6-black"></div>`,
-    art: `<div class="s6-flare"><img src="${img('void-flare')}" alt="" loading="lazy" decoding="async"></div><i class="s6-line"></i>`,
+    art: `<div class="s6-wrap"><div class="s6-grow"><div class="s6-flare"><img src="${img('void-flare')}" alt="" loading="lazy" decoding="async"></div><i class="s6-line"></i></div></div>`,
   },
   7: {
     bg: `<div class="s7-sky"></div><div class="st__scrim st__scrim--l st__scrim--navy"></div>`,
-    art: `<div class="s7-man"><div class="s7-oval"><img src="${img('mandala')}" alt="" loading="lazy" decoding="async"></div>${rings()}</div>`,
+    art: `<div class="s7-wrap"><div class="s7-grow"><div class="s7-man"><div class="s7-oval"><img src="${img('mandala')}" alt="" loading="lazy" decoding="async"></div>${rings()}</div></div></div>`,
   },
 };
 
@@ -124,7 +148,7 @@ function stage(s: Extract<SceneDef, { type: 'stage' }>, L: Locale): string {
   const ps = t.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('');
   const cite = t.cite ? `<p class="st__cite">${esc(t.cite)}</p>` : '';
   const X = extraFor(L.code);
-  const act = `<div class="st__act"><button type="button" class="act act--p" data-practice="${s.n}"><i></i>${esc(X.ui.practice)}</button><button type="button" class="act act--l" data-listen="${s.n}"><i></i><span>${esc(X.ui.listen)}</span></button></div>`;
+  const act = `<div class="st__act"><button type="button" class="act act--p" data-practice="${s.n}"><i></i>${esc(X.ui.practice)}</button><button type="button" class="act act--l" data-listen="${s.n}"><i></i><span>${esc(X.ui.listen)}</span></button><button type="button" class="act act--l" data-agent="${s.n}"><i></i>${esc(agentFor(L.code).ui.open)}</button></div>`;
   return `
 <section class="st st--${s.n} st--${s.side} scene" id="${s.id}" data-scene="${s.id}" data-stage="${s.n}">
   <div class="st__bg">${a.bg}</div>
@@ -147,19 +171,14 @@ function epilogue(L: Locale, z: number, dwell: number): string {
     <h2 class="st__title">${esc(L.ui.epilogue)}: ${esc(e.title)}</h2>
     <p class="st__q">${esc(e.q)}</p>
     ${e.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('')}
-    <div class="st__act st__act--c"><button type="button" class="act act--p" data-diary><i></i>${esc(extraFor(L.code).ui.diary)}</button><button type="button" class="act act--l" data-map><i></i>${esc(extraFor(L.code).ui.map)}</button></div>
+    <div class="st__act st__act--c"><button type="button" class="act act--p" data-diary><i></i>${esc(extraFor(L.code).ui.diary)}</button><button type="button" class="act act--l" data-map><i></i>${esc(extraFor(L.code).ui.map)}</button><button type="button" class="act act--l" data-pulse-open><i></i>${esc(extraFor(L.code).ui.pulseBtn)}</button><button type="button" class="act act--l" data-agent="8"><i></i>${esc(agentFor(L.code).ui.open)}</button></div>
   </div>
 </section>
 ${stack('finale', 'finale', dwell, z + 1, `<section class="fin scene" id="finale" data-scene="finale">
   <div class="fin__light"></div>
-  <svg class="fin__rings" viewBox="0 0 200 200" aria-hidden="true">
-    <circle cx="100" cy="100" r="96" fill="none" stroke="currentColor" stroke-width=".3"/>
-    <circle cx="100" cy="100" r="76" fill="none" stroke="currentColor" stroke-width=".3" stroke-dasharray="1 3"/>
-    <circle cx="100" cy="100" r="56" fill="none" stroke="currentColor" stroke-width=".3"/>
-    <circle cx="100" cy="100" r="36" fill="none" stroke="currentColor" stroke-width=".3" stroke-dasharray="4 4"/>
-  </svg>
+  <div class="fin__orb" aria-hidden="true"><div class="fin__orb-in"><i class="fo-core"></i><i class="fo-r fo-m" style="--i:0"></i><i class="fo-r fo-m" style="--i:1"></i><i class="fo-r fo-m" style="--i:2"></i><i class="fo-r fo-m" style="--i:3"></i><i class="fo-r fo-m" style="--i:4"></i><i class="fo-r fo-m" style="--i:5"></i><i class="fo-r fo-l" style="--k:-1"></i><i class="fo-r fo-l" style="--k:0"></i><i class="fo-r fo-l" style="--k:1"></i></div></div>
   <div class="fin__inner">
-    <p class="fin__text">${esc(e.finale)}</p>
+    <p class="fin__text">${e.finale.split(/(?<=[.!?])\s+/).map((t, i) => `<span class="fin__l fin__l${i + 1}"><span class="fin__g">${esc(t)}</span></span>`).join(' ')}</p>
     <footer class="fin__foot">
       <p class="fin__brand">AR&nbsp;Design</p>
       <p class="fin__credit">${esc(L.ui.credit)}</p>

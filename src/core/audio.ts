@@ -2,29 +2,50 @@ import gsap from 'gsap';
 import { onLub } from './beat';
 
 /**
- * Sound. Two layers:
- *  1. Music — drop a file named music.mp3 (or .m4a / .ogg / .wav) into public/audio/ and it
- *     will loop quietly under the experience. Nothing breaks if the file is missing.
- *  2. A synthesized "lub-dub" heartbeat that is locked to the on-screen heartbeat clock.
- * Both start from the Enter click (browsers require a user gesture) and share one on/off switch.
+ * Sound, in two independent layers:
+ *  1. The HEARTBEAT — a synthesized "lub-dub" locked to the on-screen heartbeat clock. It is there from the very
+ *     start (intro included) until the visitor chooses silence; browsers only allow sound after a gesture, so it
+ *     begins at the first tap / click / key press (or immediately where autoplay is allowed).
+ *  2. MUSIC — drop music.mp3 (or .m4a / .ogg / .wav) into public/audio/. It is the visitor's choice: off by default.
+ * The header sound button cycles  heartbeat → heartbeat + music → silence.
  */
 const CANDIDATES = ['music.mp3', 'music.m4a', 'music.ogg', 'music.wav'];
-const KEY = 'opus-sound';
+const KEY = 'opus-sound2';
 const MUSIC_VOLUME = 0.5;
-const THUMP_VOLUME = 0.28;
+const BEAT_VOLUME = 0.3;
+
+export type SoundMode = 'beat' | 'music' | 'off';
 
 let el: HTMLAudioElement | null = null;
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let src: string | null = null;
-let on = false;
 let wired = false;
-const level = { v: 0 };
+let mode: SoundMode = prefOff() ? 'off' : 'beat';
+const beatLevel = { v: 0 };
+const musicLevel = { v: 0 };
 const mix = { duck: 1, soft: 1 };
 let filter: BiquadFilterNode | null = null;
 let routed = false;
+let brightFreq = 3200;
 
 const base = import.meta.env.BASE_URL;
+
+function prefOff(): boolean {
+  try {
+    return localStorage.getItem(KEY) === 'off';
+  } catch {
+    return false;
+  }
+}
+function savePref(m: SoundMode) {
+  try {
+    if (m === 'off') localStorage.setItem(KEY, 'off');
+    else localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 async function findMusic(): Promise<string | null> {
   for (const name of CANDIDATES) {
@@ -41,24 +62,21 @@ async function findMusic(): Promise<string | null> {
   return null;
 }
 
-export function soundPref(): boolean {
-  try {
-    return localStorage.getItem(KEY) !== 'off';
-  } catch {
-    return true;
-  }
-}
-
-function savePref(v: boolean) {
-  try {
-    localStorage.setItem(KEY, v ? 'on' : 'off');
-  } catch {
-    /* ignore */
-  }
-}
-
 export async function initAudio(): Promise<void> {
   src = await findMusic();
+}
+
+export const soundMode = (): SoundMode => mode;
+
+function ensureCtx(): boolean {
+  if (ctx) return true;
+  const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return false;
+  ctx = new AC();
+  master = ctx.createGain();
+  master.gain.value = 0;
+  master.connect(ctx.destination);
+  return true;
 }
 
 function thump(freq: number, gain: number, when: number) {
@@ -77,66 +95,39 @@ function thump(freq: number, gain: number, when: number) {
 }
 
 function lubDub() {
-  if (!on || !ctx) return;
+  if (mode === 'off' || !ctx || ctx.state !== 'running') return;
   const t = ctx.currentTime;
-  thump(58, THUMP_VOLUME, t);
-  thump(68, THUMP_VOLUME * 0.6, t + 0.2);
+  thump(58, 1, t);
+  thump(68, 0.6, t + 0.2);
 }
 
 function apply() {
-  if (master) master.gain.value = level.v;
-  if (el) el.volume = Math.min(1, level.v * MUSIC_VOLUME * mix.duck * mix.soft);
+  // with music playing the heartbeat steps back a little
+  if (master) master.gain.value = beatLevel.v * BEAT_VOLUME * mix.duck * mix.soft * (mode === 'music' ? 0.6 : 1);
+  if (el) el.volume = Math.min(1, musicLevel.v * MUSIC_VOLUME * mix.duck * mix.soft);
 }
 
-/**
- * Music already plays on the intro screen. Browsers block sound before a gesture, so try at once
- * and, if refused, start on the first click / key / touch (e.g. picking a language).
- */
-export function primeIntroMusic(): void {
-  if (!soundPref() || !src) return;
-  const go = () => {
-    if (!on) void enable();
-  };
-  const el0 = new Audio(src);
-  el0.loop = true;
-  el = el0;
-  el0.volume = 0;
-  el0.play().then(
-    () => go(),
-    () => {
-      // any first gesture (tap, click, key) starts the music; the toggle button handles its own click
-      const evs = ['pointerdown', 'keydown', 'touchstart'];
-      const once = (e: Event) => {
-        if ((e.target as HTMLElement | null)?.closest?.('#pre-snd, #snd')) {
-          evs.forEach((n) => removeEventListener(n, once, true));
-          return;
-        }
-        evs.forEach((n) => removeEventListener(n, once, true));
-        go();
-      };
-      evs.forEach((n) => addEventListener(n, once, true));
-    },
-  );
-}
-
-/** Called from the Enter button: music continues (or stays off if the visitor switched it off). */
-export async function startAudio(): Promise<void> {
-  if (!soundPref()) {
-    paintButton(false);
-    return;
+async function startBeatLayer() {
+  if (!ensureCtx()) return;
+  if (!wired) {
+    wired = true;
+    onLub(lubDub);
   }
-  if (!on) await enable();
+  try {
+    await ctx!.resume();
+  } catch {
+    /* needs a gesture: the unlock listener below will retry */
+  }
+  gsap.to(beatLevel, { v: 1, duration: 1.8, ease: 'power1.inOut', onUpdate: apply });
 }
 
-async function enable() {
-  const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  if (!ctx && AC) {
-    ctx = new AC();
-    master = ctx.createGain();
-    master.gain.value = 0;
-    master.connect(ctx.destination);
+async function startMusicLayer() {
+  if (!ensureCtx()) return;
+  try {
+    await ctx!.resume();
+  } catch {
+    /* retried on the next gesture */
   }
-  await ctx?.resume();
   if (src && !el) {
     el = new Audio(src);
     el.loop = true;
@@ -157,55 +148,101 @@ async function enable() {
       /* already routed or unsupported: play unfiltered */
     }
   }
-  if (!wired) {
-    wired = true;
-    onLub(lubDub);
-  }
-  on = true;
-  gsap.to(level, { v: 1, duration: 3.2, ease: 'power1.inOut', onUpdate: apply });
-  paintButton(true);
+  gsap.to(musicLevel, { v: 1, duration: 3, ease: 'power1.inOut', onUpdate: apply });
 }
 
-async function disable() {
-  on = false;
-  gsap.to(level, {
-    v: 0,
-    duration: 0.8,
-    onUpdate: apply,
-    onComplete: () => el?.pause(),
+function stopMusicLayer() {
+  gsap.to(musicLevel, { v: 0, duration: 0.8, onUpdate: apply, onComplete: () => el?.pause() });
+}
+function stopBeatLayer() {
+  gsap.to(beatLevel, { v: 0, duration: 0.5, onUpdate: apply });
+}
+
+const NAMES: Record<string, [string, string, string]> = {
+  en: ['Sound: heartbeat', 'Sound: heartbeat and music', 'Sound: off'],
+  ru: ['Звук: сердцебиение', 'Звук: сердцебиение и музыка', 'Звук: выключен'],
+  es: ['Sonido: latido', 'Sonido: latido y música', 'Sonido: apagado'],
+  uk: ['Звук: серцебиття', 'Звук: серцебиття і музика', 'Звук: вимкнено'],
+  fr: ['Son : battement', 'Son : battement et musique', 'Son : coupé'],
+  de: ['Ton: Herzschlag', 'Ton: Herzschlag und Musik', 'Ton: aus'],
+  pt: ['Som: batimento', 'Som: batimento e música', 'Som: desligado'],
+};
+
+function paintButton() {
+  const music = mode === 'music';
+  const names = NAMES[document.documentElement.lang] ?? NAMES.en;
+  const label = names[mode === 'beat' ? 0 : mode === 'music' ? 1 : 2];
+  const snd = document.getElementById('snd');
+  if (snd) {
+    snd.dataset.state = mode;
+    snd.classList.toggle('on', music);
+    snd.setAttribute('aria-pressed', String(mode !== 'off'));
+    snd.setAttribute('aria-label', label);
+    snd.title = label;
+  }
+  const pre = document.getElementById('pre-snd');
+  if (pre) {
+    pre.setAttribute('aria-pressed', String(music));
+    pre.classList.toggle('on', music);
+  }
+  window.dispatchEvent(new CustomEvent('soundchange', { detail: music }));
+}
+
+/** Switch the sound mode (heartbeat layer and music layer are started / stopped accordingly). */
+export async function setSoundMode(next: SoundMode, remember = true): Promise<void> {
+  const prev = mode;
+  mode = next;
+  if (remember) savePref(next);
+  if (next === 'off') {
+    stopBeatLayer();
+    stopMusicLayer();
+  } else {
+    if (prev === 'off' || !wired) await startBeatLayer();
+    if (next === 'music') await startMusicLayer();
+    else if (prev === 'music') stopMusicLayer();
+    apply();
+  }
+  paintButton();
+}
+
+/**
+ * Called as early as possible: the heartbeat starts at once where the browser allows it, otherwise on the first
+ * tap, click or key press anywhere on the page (the intro screen has plenty of those: language, Enter, …).
+ */
+export function primeSound(): void {
+  paintButton();
+  if (mode === 'off') return;
+  void startBeatLayer();
+  const evs = ['pointerdown', 'keydown', 'touchstart'];
+  const once = () => {
+    evs.forEach((n) => removeEventListener(n, once, true));
+    if (mode !== 'off') {
+      void startBeatLayer();
+      if (mode === 'music') void startMusicLayer();
+    }
+  };
+  evs.forEach((n) => addEventListener(n, once, true));
+}
+
+/** Called from the Enter button (a guaranteed gesture): make sure the heartbeat is running. */
+export async function startAudio(): Promise<void> {
+  if (mode !== 'off') await startBeatLayer();
+}
+
+/** re-label the sound button (language change) */
+export const repaintSound = paintButton;
+
+export function bindSoundButton(): void {
+  document.getElementById('snd')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    void setSoundMode(mode === 'beat' ? 'music' : mode === 'music' ? 'off' : 'beat');
   });
-  paintButton(false);
+  // on the intro the second button is the plain music switch; the heartbeat stays
+  document.getElementById('pre-snd')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    void setSoundMode(mode === 'music' ? 'beat' : 'music');
+  });
 }
-
-function paintButton(v: boolean) {
-  for (const id of ['snd', 'pre-snd']) {
-    const b = document.getElementById(id);
-    if (!b) continue;
-    b.setAttribute('aria-pressed', String(v));
-    b.classList.toggle('on', v);
-  }
-  window.dispatchEvent(new CustomEvent('soundchange', { detail: v }));
-}
-
-export function bindSoundButton(label: (on: boolean) => string) {
-  for (const id of ['snd', 'pre-snd']) {
-    const b = document.getElementById(id);
-    if (!b) continue;
-    b.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      if (on) {
-        savePref(false);
-        await disable();
-      } else {
-        savePref(true);
-        await enable();
-      }
-      b.setAttribute('aria-label', label(on));
-    });
-  }
-}
-
-let brightFreq = 3200;
 
 /** 0 → 1 across the journey: the music slowly opens up (3 kHz → 16 kHz), a warmer, brighter sound. */
 export function setBrightness(p: number): void {
@@ -213,12 +250,18 @@ export function setBrightness(p: number): void {
   if (filter && ctx) filter.frequency.setTargetAtTime(brightFreq, ctx.currentTime, 0.4);
 }
 
-/** Lower the music while the chapter is read aloud. */
+/** Lower everything while the chapter is read aloud. */
 export function duckMusic(on: boolean): void {
   gsap.to(mix, { duck: on ? 0.28 : 1, duration: 0.6, onUpdate: apply });
 }
 
-/** Gentle mode: quieter music. */
+/** Gentle mode: quieter sound. */
 export function setSoftVolume(soft: boolean): void {
   gsap.to(mix, { soft: soft ? 0.55 : 1, duration: 0.6, onUpdate: apply });
+}
+
+/** A tiny soft thump for a tap (unless sound is off). */
+export function softTick(): void {
+  if (mode === 'off' || !ctx || ctx.state !== 'running') return;
+  thump(84, 0.5, ctx.currentTime);
 }

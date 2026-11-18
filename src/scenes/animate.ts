@@ -95,9 +95,10 @@ const HEART_ENTERS: Enter[] = ['flipX', 'swingR', 'depth', 'swingL'];
 function enterTransition(sec: HTMLElement, mode: Mode) {
   if (mode === 'reduce' || sec.classList.contains('hero')) return;
   const heart = sec.classList.contains('hs');
-  const n = Number(sec.id.split('-')[1] || 1);
-  const kind: Enter = heart ? HEART_ENTERS[(n - 1) % HEART_ENTERS.length] : 'card';
-  if (!heart && mode !== 'desktop') return;
+  const idx = Math.max(0, $$('.hs').indexOf(sec));
+  const kind: Enter = heart ? HEART_ENTERS[idx % HEART_ENTERS.length] : 'card';
+  // phones: no 3D flips (they cost a lot of GPU memory and were a reason the page could reload)
+  if (mode !== 'desktop') return;
   const d = mode === 'desktop' ? 1 : 0.55;
   const st = { trigger: stackOf(sec), start: 'top bottom', end: 'top top', scrub: true, invalidateOnRefresh: true };
   const P = 1500;
@@ -126,6 +127,50 @@ function enterTransition(sec: HTMLElement, mode: Mode) {
       break;
   }
   gsap.fromTo(sec, from, to);
+}
+
+/**
+ * Pictures flow into each other: a scene's artwork grows out of the dark (scale down + fade in) as it arrives,
+ * then shrinks and dissolves while the next scene takes over.
+ */
+function dissolve(sec: HTMLElement, mode: Mode) {
+  if (mode === 'reduce' || sec.classList.contains('hero')) return;
+  const heart = sec.classList.contains('hs');
+  const target = heart ? $('.hs__layers', sec) : $('.st__art', sec);
+  if (!target) return;
+  const mobileStage = mode === 'mobile' && !heart;
+  const k = mode === 'desktop' ? 1 : 0.8;
+  gsap.fromTo(
+    target,
+    { opacity: 0, scale: 1 + 0.2 * k },
+    {
+      opacity: 1,
+      scale: 1,
+      ease: 'power2.out',
+      scrollTrigger: mobileStage
+        ? { trigger: target, start: 'top 96%', end: 'top 40%', scrub: true, invalidateOnRefresh: true }
+        : { trigger: stackOf(sec), start: 'top bottom', end: 'top 20%', scrub: true, invalidateOnRefresh: true },
+    },
+  );
+  gsap.fromTo(
+    target,
+    { opacity: 1, scale: 1 },
+    {
+      opacity: 0.2,
+      scale: 0.88,
+      ease: 'none',
+      immediateRender: false,
+      scrollTrigger: mobileStage
+        ? { trigger: target, start: 'bottom 45%', end: 'bottom -10%', scrub: true, invalidateOnRefresh: true }
+        : {
+            trigger: stackOf(sec),
+            start: () => `top+=${innerHeight * dwellOf(sec)} top`,
+            end: () => `+=${innerHeight}`,
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+    },
+  );
 }
 
 /** Only scenes near the viewport get a GPU layer (will-change); the rest stay cheap. */
@@ -283,7 +328,7 @@ function buildHero(sec: HTMLElement, mode: Mode) {
   );
 
   const smokeCanvas = $<HTMLCanvasElement>('.hero__smoke', sec);
-  if (smokeCanvas && mode !== 'reduce') {
+  if (smokeCanvas && mode === 'desktop') {
     const smoke = new Smoke(smokeCanvas);
     offs.push(() => smoke.destroy());
     offs.push(onBeatFrame((v) => smoke.setBeat(v)));
@@ -361,9 +406,9 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
   // beat: the heart itself scales, its halo / bloom / ring swell in opacity
   layers.forEach((l) => {
     const rig = $('.hc-rig', l);
-    if (rig) registerPulse(rig, 0.022);
+    if (rig) registerPulse(rig, l.classList.contains('hl--clean') ? 0.04 : 0.022);
     const halo = $('.hc-halo', l);
-    if (halo) registerGlow(halo, 0.26, 0.62);
+    if (halo) registerGlow(halo, l.classList.contains('hl--clean') ? 0.3 : 0.26, l.classList.contains('hl--clean') ? 0.7 : 0.62);
     const bloom = $('.hl__bloom', l);
     if (bloom) registerGlow(bloom, 0.04, 0.5);
     const pulse = $('.hl__pulse', l);
@@ -391,8 +436,9 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
   }
 
   const tl = gsap.timeline({ scrollTrigger: trig(sec, 0.55), defaults: { ease: 'power2.inOut' } });
-  // every picture after the first waits behind a closed iris and opens from the heart's centre
-  gsap.set(layers.slice(1), { clipPath: 'circle(0% at 50% 50%)' });
+  const phone = mode !== 'desktop';
+  // every picture after the first waits behind a closed iris and opens from the heart's centre (phones: it fades in)
+  gsap.set(layers.slice(1), { autoAlpha: 0 });
 
   const rig0 = $('.hc-rig', layers[0]);
   if (rig0) tl.fromTo(rig0, { scale: 0.9 }, { scale: 1, duration: 1.6, ease: 'expo.out' }, 0);
@@ -403,16 +449,21 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
     const t0 = tl.duration();
     const nextRig = $('.hc-rig', next);
     const prevRig = $('.hc-rig', prev);
-    tl.to(next, { clipPath: 'circle(88% at 50% 50%)', duration: 1.7, ease: 'power3.inOut' }, t0);
-    const dir = i % 2 ? -1 : 1;
-    if (prevRig) tl.to(prevRig, { scale: 1.12, rotationY: 28 * dir, transformPerspective: 1200, duration: 1.7, ease: 'power2.in' }, t0);
-    if (nextRig) tl.fromTo(nextRig, { scale: 0.62, rotationY: -70 * dir, z: -300, transformPerspective: 1200 }, { scale: 1, rotationY: 0, z: 0, duration: 2.2, ease: 'expo.out' }, t0 + 0.15);
+    // one smooth dissolve: the next picture fades in over the previous one while both drift very slightly
+    tl.to(next, { autoAlpha: 1, duration: 2.6, ease: 'sine.inOut' }, t0);
+    // the old picture lets go completely once the new one has taken over
+    tl.to(prev, { autoAlpha: 0, duration: 1.4, ease: 'sine.in' }, t0 + 1.5);
+    if (prevRig) tl.to(prevRig, { scale: 1.07, duration: 2.6, ease: 'sine.inOut' }, t0);
+    if (nextRig) tl.fromTo(nextRig, { scale: 0.93 }, { scale: 1, duration: 3, ease: 'sine.out' }, t0);
     const nextHalo = $('.hc-halo', next);
-    if (nextHalo) tl.fromTo(nextHalo, { scale: 0.4 }, { scale: 1.12, duration: 2.0, ease: 'power2.out' }, t0 + 0.1);
-    tl.to({}, { duration: 1.0 }, t0 + 2.0);
+    if (nextHalo && !phone) tl.fromTo(nextHalo, { scale: 0.7, opacity: 0 }, { scale: 1.1, opacity: 1, duration: 2.6, ease: 'sine.out' }, t0);
+    tl.to({}, { duration: 1.2 }, t0 + 2.8);
   });
   tl.to({}, { duration: 0.5 });
 
+  // each heart is its own layer: it swells steadily while you scroll (and breathes on the beat on top of that)
+  const clean = layers.filter((l) => l.classList.contains('hl--clean'));
+  if (clean.length) tl.fromTo(clean, { scale: 0.72 }, { scale: 1.06, duration: tl.duration(), ease: 'none' }, 0);
   // a slow push-in on every picture for the whole dwell, so nothing sits still
   const slow = $$('.hc-bg, .hf', sec);
   if (slow.length) tl.fromTo(slow, { scale: 1 }, { scale: 1.12, duration: tl.duration(), ease: 'none' }, 0);
@@ -434,6 +485,7 @@ function buildHeart(sec: HTMLElement, mode: Mode) {
   cover(sec, mode);
   enterParallax(sec, mode);
   enterTransition(sec, mode);
+  dissolve(sec, mode);
 }
 
 /* ------------------------------------------------------------------ */
@@ -475,7 +527,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     1: [['.s1-glow', 0]],
     2: [['.s2-wrap', 0.01]],
     3: [['.s3-hands', 0.015]],
-    5: [['.s5-star', 0.035]],
+    5: [['.s5-svg', 0.03]],
     6: [['.s6-flare', 0.03]],
     7: [['.s7-man', 0.012]],
   };
@@ -527,10 +579,12 @@ function buildStage(sec: HTMLElement, mode: Mode) {
     cover(sec, mode);
     enterParallax(sec, mode);
     enterTransition(sec, mode);
+    dissolve(sec, mode);
     return;
   }
 
   // mobile: no pinning — native scroll, words light up as they cross the viewport
+  dissolve(sec, mode);
   ScrollTrigger.create({ id: sec.id, trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
   gsap.from(art, {
     autoAlpha: 0,
@@ -551,18 +605,13 @@ function buildStage(sec: HTMLElement, mode: Mode) {
       scrollTrigger: { trigger: title, start: 'top 88%', toggleActions: 'play none none reverse' },
     },
   );
-  $$('.st__q, .st__p', sec).forEach((p) => {
-    const ws = $$('.w', p);
-    gsap.to(ws, {
-      opacity: 1,
-      ease: 'none',
-      stagger: 0.5 / ws.length,
-      scrollTrigger: { trigger: p, start: 'top 88%', end: 'bottom 58%', scrub: true },
-    });
-  });
+  // phones: the text is simply there, fully lit — a dimmed "reading light" is hard to read on a small screen
+  gsap.set(words, { opacity: 1 });
+  // layered scroll parallax: the artwork drifts against the page, the background against the artwork
+  gsap.fromTo(art, { yPercent: -6 }, { yPercent: 6, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 0.5 } });
   if (cite) gsap.from(cite, { autoAlpha: 0, y: 10, scrollTrigger: { trigger: cite, start: 'top 94%', toggleActions: 'play none none reverse' } });
   if (act) gsap.from(act, { autoAlpha: 0, y: 10, scrollTrigger: { trigger: act, start: 'top 96%', toggleActions: 'play none none reverse' } });
-  if (bgImg) gsap.fromTo(bgImg, { scale: 1.12 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: true } });
+  if (bgImg) gsap.fromTo(bgImg, { scale: 1.16, yPercent: -4 }, { scale: 1.02, yPercent: 4, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: true } });
 }
 
 /** Infinite, scroll-independent motion that gives each stage its own personality. */
@@ -573,7 +622,6 @@ function ambient(n: number, sec: HTMLElement) {
     gsap.to($('.m1', sec), { xPercent: 12, duration: 18, yoyo: true, repeat: -1, ease: 'sine.inOut' });
     gsap.to($('.m2', sec), { xPercent: -14, duration: 24, yoyo: true, repeat: -1, ease: 'sine.inOut' });
   }
-  if (n === 5) gsap.to($('.s5-star img', sec), { rotation: 8, duration: 14, yoyo: true, repeat: -1, ease: 'sine.inOut' });
   if (n === 7) {
     gsap.to($('.r1', sec), { rotation: 360, duration: 120, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
     gsap.to($('.r2', sec), { rotation: -360, duration: 90, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
@@ -582,12 +630,16 @@ function ambient(n: number, sec: HTMLElement) {
 }
 
 function stageExtras(n: number, sec: HTMLElement, tl: gsap.core.Timeline, T: number) {
-  if (n === 5) tl.fromTo($('.s5-star', sec), { scale: 0.55 }, { scale: 1.05, duration: T, ease: 'none' }, 0);
+  // the art of chapters V–VII is its own layer, centred in its block: it grows while you scroll
+  if (n === 5) tl.fromTo($('.s5-grow', sec), { scale: 0.5 }, { scale: 1.12, duration: T, ease: 'none' }, 0);
   if (n === 6) {
     tl.fromTo($('.s6-line', sec), { scaleX: 0.04, opacity: 0.1 }, { scaleX: 1, opacity: 1, duration: 8, ease: 'power1.inOut' }, 1);
-    tl.fromTo($('.s6-flare', sec), { scale: 0.7 }, { scale: 1.1, duration: T, ease: 'none' }, 0);
+    tl.fromTo($('.s6-grow', sec), { scale: 0.62 }, { scale: 1.12, duration: T, ease: 'none' }, 0);
   }
-  if (n === 7) tl.fromTo($('.s7-rings', sec), { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 4, ease: 'power2.out' }, 0.4);
+  if (n === 7) {
+    tl.fromTo($('.s7-grow', sec), { scale: 0.6 }, { scale: 1.06, duration: T, ease: 'none' }, 0);
+    tl.fromTo($('.s7-rings', sec), { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 4, ease: 'power2.out' }, 0.4);
+  }
   if (n === 2) tl.fromTo($('.s2-ring', sec), { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 2.5 }, 0.8);
   if (n === 3) tl.fromTo($('.s3-aura', sec), { scale: 0.4 }, { scale: 1.15, duration: 6, ease: 'power1.out' }, 0.5);
   if (n === 1) tl.fromTo($('.s1-glow', sec), { scale: 0.3 }, { scale: 1.2, duration: 5, ease: 'power1.out' }, 1);
@@ -631,9 +683,29 @@ function buildEpilogue(sec: HTMLElement, mode: Mode) {
 }
 
 function buildFinale(sec: HTMLElement, mode: Mode, hooks: Hooks) {
+  // lines 1 and 2 appear word by word; the big gold line is one element so its gradient can never tear
+  const lines = $$('.fin__l', sec);
+  const gold = lines[2] ?? null;
+  const words: HTMLElement[] = [...lines.slice(0, 2).flatMap((l) => splitWords($('.fin__g', l)!)), ...(gold ? [gold] : [])];
+  const orb = $('.fin__orb', sec)!;
   const text = $('.fin__text', sec)!;
-  const words = splitWords(text);
-  registerPulse($('.fin__rings', sec)!, 0.02);
+  // the sphere turns on its own (CSS); the text lies on a separate layer and drifts the other way with the pointer
+  if (matchMedia('(pointer: fine)').matches && !isSoft()) {
+    const ox = gsap.quickTo(orb, 'x', { duration: 1.6, ease: 'power3' });
+    const oy = gsap.quickTo(orb, 'y', { duration: 1.6, ease: 'power3' });
+    const tx = gsap.quickTo(text, 'x', { duration: 1.8, ease: 'power3' });
+    const ty = gsap.quickTo(text, 'y', { duration: 1.8, ease: 'power3' });
+    const on = (e: PointerEvent) => {
+      const nx = (e.clientX / innerWidth - 0.5) * 2;
+      const ny = (e.clientY / innerHeight - 0.5) * 2;
+      ox(nx * 22);
+      oy(ny * 16);
+      tx(-nx * 10);
+      ty(-ny * 7);
+    };
+    addEventListener('pointermove', on, { passive: true });
+    offs.push(() => removeEventListener('pointermove', on));
+  }
 
   if (mode === 'reduce') {
     ScrollTrigger.create({ id: 'finale', trigger: stackOf(sec), start: 'top top', end: 'bottom top' });
@@ -650,9 +722,10 @@ function buildFinale(sec: HTMLElement, mode: Mode, hooks: Hooks) {
     },
     defaults: { ease: 'none' },
   });
-  tl.fromTo($('.fin__light', sec), { clipPath: 'circle(0% at 50% 50%)' }, { clipPath: 'circle(150% at 50% 50%)', duration: 4, ease: 'power2.inOut' }, 0)
-    .fromTo($('.fin__rings', sec), { scale: 0.3, opacity: 0, rotation: -40 }, { scale: 1, opacity: 1, rotation: 0, duration: 5 }, 0.5)
-    .to(words, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.2, stagger: 0.55, ease: 'power2.out' }, 2.8)
-    .from($('.fin__foot', sec), { autoAlpha: 0, y: 20, duration: 1.4, ease: 'power2.out' }, 6.4)
+  // light first, quickly (no long empty dark stretch after the epilogue), then the sphere, then the words
+  tl.fromTo($('.fin__light', sec), { clipPath: 'circle(0% at 50% 50%)' }, { clipPath: 'circle(150% at 50% 50%)', duration: 2.6, ease: 'power2.out' }, 0)
+    .fromTo(orb, { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 3 }, 0.3)
+    .to(words, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, stagger: 0.45, ease: 'power2.out' }, 1.4)
+    .from($('.fin__foot', sec), { autoAlpha: 0, y: 20, duration: 1.2, ease: 'power2.out' }, 4.2)
     .to({}, { duration: 1 });
 }

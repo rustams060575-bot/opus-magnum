@@ -39,6 +39,20 @@ export interface Extra {
     light: string;
     stageWord: string;
     breathHint: string;
+    pulseBtn: string;
+    pulseTitle: string;
+    pulseFind: string;
+    pulseFindText: string;
+    pulseTap: string;
+    pulseBpm: string;
+    pulseGo: string;
+    pulseSkip: string;
+    pulseBreathe: string;
+    pulseBreatheText: string;
+    pulseDone: string;
+    pulseDoneText: string;
+    pulseAgain: string;
+    pulseNote: string;
   };
   gloss: Term[];
   /** one reflective question per stage (7) */
@@ -76,6 +90,20 @@ export const extras: Record<string, Extra> = {
       light: 'Light',
       stageWord: 'Stage',
       breathHint: 'Let your breath follow the heart. Four counts in, six out.',
+      pulseBtn: 'Feel your pulse',
+      pulseTitle: 'Pulse & breath',
+      pulseFind: 'Find your pulse',
+      pulseFindText: 'Rest two fingers on your wrist or neck. Tap the heart with each beat you feel.',
+      pulseTap: 'Tap with every beat',
+      pulseBpm: 'beats per minute',
+      pulseGo: 'Continue',
+      pulseSkip: 'Use a calm rhythm instead',
+      pulseBreathe: 'Breathe with the heart',
+      pulseBreatheText: 'Breathe in as the heart grows, out as it settles. The rhythm slows gently, and so can you.',
+      pulseDone: 'Rest here a moment',
+      pulseDoneText: 'Notice how your body feels now. You can come back to this rhythm whenever you need it.',
+      pulseAgain: 'Once more',
+      pulseNote: 'Write a thought',
     },
     gloss: [
       { stems: ['shadow'], term: 'Shadow', text: 'In Jung’s psychology, the parts of ourselves we have not accepted or noticed. Meeting them gently makes a person more whole, not worse.' },
@@ -125,6 +153,20 @@ export const extras: Record<string, Extra> = {
       light: 'Свет',
       stageWord: 'Стадия',
       breathHint: 'Дышите вместе с сердцем. Четыре счёта на вдох, шесть на выдох.',
+      pulseBtn: 'Почувствовать пульс',
+      pulseTitle: 'Пульс и дыхание',
+      pulseFind: 'Найдите свой пульс',
+      pulseFindText: 'Приложите два пальца к запястью или шее. Касайтесь сердца в такт каждому удару, который чувствуете.',
+      pulseTap: 'Касайтесь в такт ударам',
+      pulseBpm: 'ударов в минуту',
+      pulseGo: 'Продолжить',
+      pulseSkip: 'Взять спокойный ритм',
+      pulseBreathe: 'Дышите вместе с сердцем',
+      pulseBreatheText: 'Вдыхайте, пока сердце растёт, выдыхайте, пока оно опадает. Ритм плавно замедляется — и вы вместе с ним.',
+      pulseDone: 'Побудьте здесь минуту',
+      pulseDoneText: 'Заметьте, что чувствует ваше тело сейчас. К этому ритму можно возвращаться, когда он нужен.',
+      pulseAgain: 'Ещё раз',
+      pulseNote: 'Записать мысль',
     },
     gloss: [
       { stems: ['тен'], term: 'Тень', text: 'В психологии Юнга — те части нас, которые мы не приняли или не заметили. Бережная встреча с ними делает человека цельнее, а не хуже.' },
@@ -174,6 +216,20 @@ export const extras: Record<string, Extra> = {
       light: 'Luz',
       stageWord: 'Etapa',
       breathHint: 'Deja que tu respiración siga al corazón. Cuatro tiempos para inhalar, seis para exhalar.',
+      pulseBtn: 'Siente tu pulso',
+      pulseTitle: 'Pulso y respiración',
+      pulseFind: 'Encuentra tu pulso',
+      pulseFindText: 'Apoya dos dedos en la muñeca o el cuello. Toca el corazón con cada latido que sientas.',
+      pulseTap: 'Toca con cada latido',
+      pulseBpm: 'latidos por minuto',
+      pulseGo: 'Continuar',
+      pulseSkip: 'Usar un ritmo tranquilo',
+      pulseBreathe: 'Respira con el corazón',
+      pulseBreatheText: 'Inhala mientras el corazón crece, exhala mientras se aquieta. El ritmo se vuelve más lento, y tú con él.',
+      pulseDone: 'Descansa aquí un momento',
+      pulseDoneText: 'Nota cómo se siente ahora tu cuerpo. Puedes volver a este ritmo cuando lo necesites.',
+      pulseAgain: 'Otra vez',
+      pulseNote: 'Escribir un pensamiento',
     },
     gloss: [
       { stems: ['sombra'], term: 'Sombra', text: 'En la psicología de Jung, las partes de nosotros que no hemos aceptado ni notado. Encontrarlas con suavidad nos hace más completos, no peores.' },
@@ -223,6 +279,20 @@ export const extras: Record<string, Extra> = {
       light: 'Світло',
       stageWord: 'Стадія',
       breathHint: 'Дихайте разом із серцем. Чотири лічби на вдих, шість на видих.',
+      pulseBtn: 'Відчути пульс',
+      pulseTitle: 'Пульс і дихання',
+      pulseFind: 'Знайдіть свій пульс',
+      pulseFindText: 'Прикладіть два пальці до зап’ястка чи шиї. Торкайтеся серця в такт кожному удару, який відчуваєте.',
+      pulseTap: 'Торкайтеся в такт ударам',
+      pulseBpm: 'ударів за хвилину',
+      pulseGo: 'Продовжити',
+      pulseSkip: 'Взяти спокійний ритм',
+      pulseBreathe: 'Дихайте разом із серцем',
+      pulseBreatheText: 'Вдихайте, поки серце зростає, видихайте, поки воно вщухає. Ритм плавно сповільнюється — і ви разом із ним.',
+      pulseDone: 'Побудьте тут хвилину',
+      pulseDoneText: 'Помітьте, що відчуває ваше тіло зараз. До цього ритму можна повертатися, коли він потрібен.',
+      pulseAgain: 'Ще раз',
+      pulseNote: 'Записати думку',
     },
     gloss: [
       { stems: ['тін'], term: 'Тінь', text: 'У психології Юнга — ті частини нас, які ми не прийняли чи не помітили. Дбайлива зустріч із ними робить людину цілішою, а не гіршою.' },
@@ -272,6 +342,20 @@ export const extras: Record<string, Extra> = {
       light: 'Lumière',
       stageWord: 'Étape',
       breathHint: 'Laissez votre souffle suivre le cœur. Quatre temps pour inspirer, six pour expirer.',
+      pulseBtn: 'Sentir votre pouls',
+      pulseTitle: 'Pouls et souffle',
+      pulseFind: 'Trouvez votre pouls',
+      pulseFindText: 'Posez deux doigts sur votre poignet ou votre cou. Touchez le cœur à chaque battement que vous sentez.',
+      pulseTap: 'Touchez à chaque battement',
+      pulseBpm: 'battements par minute',
+      pulseGo: 'Continuer',
+      pulseSkip: 'Prendre un rythme calme',
+      pulseBreathe: 'Respirez avec le cœur',
+      pulseBreatheText: 'Inspirez quand le cœur grandit, expirez quand il s’apaise. Le rythme ralentit doucement, et vous avec lui.',
+      pulseDone: 'Reposez-vous un instant',
+      pulseDoneText: 'Remarquez ce que ressent votre corps maintenant. Vous pouvez revenir à ce rythme quand vous en avez besoin.',
+      pulseAgain: 'Encore une fois',
+      pulseNote: 'Écrire une pensée',
     },
     gloss: [
       { stems: ['ombre'], term: 'Ombre', text: 'Dans la psychologie de Jung, les parts de nous-mêmes que nous n’avons pas acceptées ou remarquées. Les rencontrer avec douceur rend plus entier, pas moins bien.' },
@@ -321,6 +405,20 @@ export const extras: Record<string, Extra> = {
       light: 'Licht',
       stageWord: 'Stufe',
       breathHint: 'Lass deinen Atem dem Herzen folgen. Vier Zähler ein, sechs aus.',
+      pulseBtn: 'Puls spüren',
+      pulseTitle: 'Puls & Atem',
+      pulseFind: 'Finde deinen Puls',
+      pulseFindText: 'Lege zwei Finger an Handgelenk oder Hals. Tippe bei jedem Schlag, den du spürst, auf das Herz.',
+      pulseTap: 'Bei jedem Schlag tippen',
+      pulseBpm: 'Schläge pro Minute',
+      pulseGo: 'Weiter',
+      pulseSkip: 'Ruhigen Rhythmus nehmen',
+      pulseBreathe: 'Atme mit dem Herzen',
+      pulseBreatheText: 'Atme ein, während das Herz wächst, und aus, während es sich beruhigt. Der Rhythmus wird sanft langsamer, und du mit ihm.',
+      pulseDone: 'Ruhe dich einen Moment aus',
+      pulseDoneText: 'Spüre, wie sich dein Körper jetzt anfühlt. Zu diesem Rhythmus kannst du zurückkehren, wann immer du ihn brauchst.',
+      pulseAgain: 'Noch einmal',
+      pulseNote: 'Gedanken notieren',
     },
     gloss: [
       { stems: ['Schatten'], term: 'Schatten', text: 'In Jungs Psychologie die Teile von uns, die wir nicht angenommen oder bemerkt haben. Ihnen behutsam zu begegnen macht ganzer, nicht schlechter.' },
@@ -370,6 +468,20 @@ export const extras: Record<string, Extra> = {
       light: 'Luz',
       stageWord: 'Etapa',
       breathHint: 'Deixe a respiração seguir o coração. Quatro tempos para inspirar, seis para expirar.',
+      pulseBtn: 'Sentir o pulso',
+      pulseTitle: 'Pulso e respiração',
+      pulseFind: 'Encontre o seu pulso',
+      pulseFindText: 'Apoie dois dedos no pulso ou no pescoço. Toque no coração a cada batida que sentir.',
+      pulseTap: 'Toque a cada batida',
+      pulseBpm: 'batimentos por minuto',
+      pulseGo: 'Continuar',
+      pulseSkip: 'Usar um ritmo calmo',
+      pulseBreathe: 'Respire com o coração',
+      pulseBreatheText: 'Inspire enquanto o coração cresce, expire enquanto ele se acalma. O ritmo desacelera suavemente, e você com ele.',
+      pulseDone: 'Descanse aqui um momento',
+      pulseDoneText: 'Perceba como o seu corpo se sente agora. Você pode voltar a este ritmo sempre que precisar.',
+      pulseAgain: 'Mais uma vez',
+      pulseNote: 'Escrever um pensamento',
     },
     gloss: [
       { stems: ['sombra'], term: 'Sombra', text: 'Na psicologia de Jung, as partes de nós que não aceitamos ou não notamos. Encontrá-las com delicadeza nos torna mais inteiros, não piores.' },

@@ -18,6 +18,7 @@ export interface PanelCtx {
   goto: (sceneId: string) => void;
   /** 0 = hero, 1..7 = stages, 8 = epilogue */
   current: () => number;
+  pulse: () => void;
 }
 
 let c: PanelCtx;
@@ -87,11 +88,13 @@ export function openPractice(n: number): void {
   <svg class="pn__orb" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="pg" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#ffcf7a"/><stop offset="1" stop-color="#e2452a"/></radialGradient></defs><path d="${HEART}" fill="url(#pg)"/></svg>
   <p class="pn__bl" aria-live="polite">${esc(X.ui.inhale)}</p>
 </div>
+<div class="pn__row" style="justify-content:center"><button class="pn__btn pn__pulse" type="button" id="pn-pulse">${esc(X.ui.pulseBtn)}</button></div>
 <p class="pn__hint">${esc(X.ui.breathHint)}</p>
 <textarea class="pn__ta" rows="4" maxlength="2000" placeholder="${esc(X.ui.notePh)}">${esc(saved)}</textarea>
 <p class="pn__saved" aria-live="polite"></p>`,
     'pn--practice',
   );
+  root.querySelector('#pn-pulse')!.addEventListener('click', () => c.pulse());
   const orb = root.querySelector<SVGElement>('.pn__orb')!;
   const lab = root.querySelector<HTMLElement>('.pn__bl')!;
   const setLab = (t: string) => () => {
