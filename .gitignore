@@ -7,3 +7,4 @@ dist
 .env.*
 # large Figma exports (kept locally, not in git)
 assets-src/figma/
+tests/out/

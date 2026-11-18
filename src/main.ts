@@ -29,6 +29,7 @@ import '@fontsource/cormorant-garamond/cyrillic-500-italic.css';
 import 'lenis/dist/lenis.css';
 import './styles/main.css';
 import './styles/extra.css';
+import './styles/journey.css';
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -49,6 +50,10 @@ import { stopSpeech, toggleSpeech, speechSupported } from './ui/speech';
 import { initAgent, openAgent, resetAgent } from './ui/agent';
 import { agentFor } from './i18n/agent';
 import { getNotes, setNote } from './ui/store';
+import { closeRitual, initRitual, openRitual } from './ui/ritual';
+import { initConstellation, openConstellation } from './ui/constellation';
+import { doneCount, isDone, onJourney, repair } from './journey/state';
+import { jfor } from './journey/content';
 import { windowImages, stopWindowing } from './core/memory';
 import { clearScroll, saveScroll, savedScroll } from './core/session';
 import { chapterTick, initTouchPlay } from './ui/touch';
@@ -192,6 +197,11 @@ function paintUiLabels() {
 }
 
 function paintPreloaderText() {
+  const w = document.getElementById('pre-welcome');
+  if (w) {
+    w.hidden = doneCount() === 0;
+    w.textContent = jfor(lang).ui.welcome;
+  }
   repaintSound();
   const L = locales[lang];
   const label = document.getElementById('pre-label');
@@ -229,6 +239,7 @@ function mount() {
   if (prefetched) app.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((i) => (i.loading = 'eager'));
   initScenes(hooks);
   ScrollTrigger.refresh();
+  dispatchEvent(new Event('journeyrepaint'));
 }
 
 async function switchLang(code: string) {
@@ -246,6 +257,7 @@ async function switchLang(code: string) {
   stopSpeech();
   closePulse();
   resetAgent();
+  closeRitual();
   await remount();
 }
 
@@ -281,6 +293,8 @@ ScrollTrigger.create({
   end: 'max',
   onUpdate: (s) => {
     $('#rail').style.setProperty('--p', s.progress.toFixed(4));
+    // the heart in the corner fills with gold as the journey advances
+    dispatchEvent(new CustomEvent('journeyscroll', { detail: s.progress }));
     // light conquers darkness: the screen warms and the music opens up as the journey advances
     $('#dawn').style.opacity = (Math.pow(s.progress, 1.25) * 0.62).toFixed(3);
     setBrightness(s.progress);
@@ -330,11 +344,56 @@ initAgent({
     setNote(k, old ? `${old}\n\n${text}` : text);
   },
 });
+initRitual({
+  lang: () => lang,
+  stop: () => lenis.stop(),
+  start: () => {
+    if (entered) lenis.start();
+  },
+  stageTitle: (n) => locales[lang].stages[n - 1].title.split('.')[0],
+  restoreBpm: () => setBpm(sceneBpm, 2.4),
+  goto: (id) => {
+    const y = sceneStart(id);
+    if (y != null) lenis.scrollTo(y, { duration: 2.2 });
+  },
+});
+initConstellation({
+  lang: () => lang,
+  stop: () => lenis.stop(),
+  start: () => {
+    if (entered) lenis.start();
+  },
+  stageTitle: (n) => locales[lang].stages[n - 1].title.split('.')[0],
+  openRitual: (n) => openRitual(n),
+});
+/* the heart that slowly turns to gold: always visible, opens the constellation */
+{
+  const hs = document.createElement('button');
+  hs.id = 'hstate';
+  hs.type = 'button';
+  hs.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="hs-c"><rect class="hs-clip" x="0" y="100" width="100" height="100"/></clipPath></defs><path d="M50 90 C19 67 6 49 6 32 C6 17 18 8 31 8 C40 8 47 13 50 21 C53 13 60 8 69 8 C82 8 94 17 94 32 C94 49 81 67 50 90Z" fill="rgba(60,14,28,.85)" stroke="rgba(255,226,154,.7)" stroke-width="3"/><path clip-path="url(#hs-c)" d="M50 90 C19 67 6 49 6 32 C6 17 18 8 31 8 C40 8 47 13 50 21 C53 13 60 8 69 8 C82 8 94 17 94 32 C94 49 81 67 50 90Z" fill="#f0c04a"/></svg>';
+  document.body.appendChild(hs);
+  hs.addEventListener('click', () => openConstellation());
+  const fillHeart = (p: number) => hs.querySelector('.hs-clip')?.setAttribute('y', String(100 - Math.max(0, Math.min(1, p)) * 92));
+  addEventListener('journeyscroll', ((e: CustomEvent<number>) => fillHeart(e.detail)) as EventListener);
+  const paintHeart = () => {
+    void repair;
+    hs.setAttribute('aria-label', `${jfor(lang).ui.consTitle}: ${doneCount()}/7`);
+    hs.title = jfor(lang).ui.consTitle;
+    hs.classList.toggle('has', doneCount() > 0);
+    document.querySelectorAll<HTMLElement>('[data-ritual]').forEach((b) => b.classList.toggle('is-done', isDone(Number(b.dataset.ritual))));
+  };
+  onJourney(paintHeart);
+  paintHeart();
+  addEventListener('journeyrepaint', paintHeart);
+}
 initGlossaryDismiss();
 app.addEventListener('click', (e) => {
-  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-practice], [data-listen], [data-diary], [data-map], [data-pulse-open], [data-agent]');
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-practice], [data-listen], [data-diary], [data-map], [data-pulse-open], [data-agent], [data-ritual], [data-cons]');
   if (!t) return;
-  if (t.dataset.agent) openAgent(Number(t.dataset.agent));
+  if (t.dataset.ritual) openRitual(Number(t.dataset.ritual));
+  else if (t.dataset.cons !== undefined) openConstellation();
+  else if (t.dataset.agent) openAgent(Number(t.dataset.agent));
   else if (t.dataset.practice) openPractice(Number(t.dataset.practice));
   else if (t.dataset.diary !== undefined) openDiary();
   else if (t.dataset.map !== undefined) openMap();

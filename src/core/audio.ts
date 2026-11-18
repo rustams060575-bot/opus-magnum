@@ -265,3 +265,26 @@ export function softTick(): void {
   if (mode === 'off' || !ctx || ctx.state !== 'running') return;
   thump(84, 0.5, ctx.currentTime);
 }
+
+/** A soft rising chime for a finished ritual: a pentatonic scale, so any order sounds kind. i = 0..9 */
+export function chime(i: number): void {
+  if (mode === 'off' || !ctx || ctx.state !== 'running') return;
+  const scale = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99, 880.0];
+  const f = scale[Math.max(0, Math.min(scale.length - 1, i))];
+  const t = ctx.currentTime;
+  const out = ctx.createGain();
+  out.gain.value = 0.12 * mix.soft * (mix.duck < 1 ? 0.4 : 1);
+  out.connect(ctx.destination);
+  for (const [mult, vol] of [[1, 1], [2.005, 0.28], [3.01, 0.1]] as const) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = f * mult;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 2.3);
+  }
+}
