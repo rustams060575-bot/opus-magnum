@@ -12,15 +12,14 @@ import { onLub } from './beat';
 const CANDIDATES = ['music.mp3', 'music.m4a', 'music.ogg', 'music.wav'];
 const KEY = 'opus-sound2';
 const MUSIC_VOLUME = 0.5;
-// system sounds (heartbeat, tap, chime) are deliberately very quiet and muffled, like heard through a wall with a soft echo
-const BEAT_VOLUME = 0.1;
+const BEAT_VOLUME = 0.3;
 
 export type SoundMode = 'beat' | 'music' | 'off';
 
 let el: HTMLAudioElement | null = null;
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let room: GainNode | null = null;
+let fxBus: GainNode | null = null;
 let src: string | null = null;
 let wired = false;
 let mode: SoundMode = prefOff() ? 'off' : 'beat';
@@ -77,43 +76,50 @@ function ensureCtx(): boolean {
   ctx = new AC();
   master = ctx.createGain();
   master.gain.value = 0;
-  room = ctx.createGain();
-  // muffled: everything above ~220 Hz is rolled off
-  const lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass';
-  lp.frequency.value = 220;
-  lp.Q.value = 0.3;
-  master.connect(lp).connect(room);
-  room.connect(ctx.destination);
-  // a soft, dark echo
-  const delay = ctx.createDelay(1);
-  delay.delayTime.value = 0.34;
-  const fb = ctx.createGain();
-  fb.gain.value = 0.38;
-  const dark = ctx.createBiquadFilter();
-  dark.type = 'lowpass';
-  dark.frequency.value = 170;
-  const wet = ctx.createGain();
-  wet.gain.value = 0.55;
-  room.connect(delay);
-  delay.connect(dark).connect(fb).connect(delay);
-  dark.connect(wet).connect(ctx.destination);
+  master.connect(ctx.destination);
   return true;
 }
 
-function thump(freq: number, gain: number, when: number) {
-  if (!ctx || !master) return;
+function thump(freq: number, gain: number, when: number, dest: AudioNode | null = master) {
+  if (!ctx || !dest) return;
   const o = ctx.createOscillator();
   const g = ctx.createGain();
   o.type = 'sine';
   o.frequency.setValueAtTime(freq * 1.9, when);
   o.frequency.exponentialRampToValueAtTime(freq, when + 0.07);
   g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(gain, when + 0.03);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.3);
-  o.connect(g).connect(master);
+  g.gain.exponentialRampToValueAtTime(gain, when + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.26);
+  o.connect(g).connect(dest);
   o.start(when);
   o.stop(when + 0.3);
+}
+
+/** the quiet, muffled "room" for interaction sounds: low-passed, with a soft dark echo */
+function fx(): AudioNode {
+  if (fxBus) return fxBus;
+  const c = ctx!;
+  fxBus = c.createGain();
+  fxBus.gain.value = 1;
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 700;
+  lp.Q.value = 0.3;
+  fxBus.connect(lp);
+  lp.connect(c.destination);
+  const delay = c.createDelay(1);
+  delay.delayTime.value = 0.34;
+  const fb = c.createGain();
+  fb.gain.value = 0.38;
+  const dark = c.createBiquadFilter();
+  dark.type = 'lowpass';
+  dark.frequency.value = 420;
+  const wet = c.createGain();
+  wet.gain.value = 0.5;
+  lp.connect(delay);
+  delay.connect(dark).connect(fb).connect(delay);
+  dark.connect(wet).connect(c.destination);
+  return fxBus;
 }
 
 function lubDub() {
@@ -285,7 +291,7 @@ export function setSoftVolume(soft: boolean): void {
 /** A tiny soft thump for a tap (unless sound is off). */
 export function softTick(): void {
   if (mode === 'off' || !ctx || ctx.state !== 'running') return;
-  thump(84, 0.3, ctx.currentTime);
+  thump(84, 0.08 * mix.soft, ctx.currentTime, fx());
 }
 
 /** A soft rising chime for a finished ritual: a pentatonic scale, so any order sounds kind. i = 0..9 */
@@ -299,8 +305,8 @@ export function chime(i: number): void {
   const soft = ctx.createBiquadFilter();
   soft.type = 'lowpass';
   soft.frequency.value = 900;
-  // through the same muffled room as the heartbeat, so it carries the soft echo
-  out.connect(soft).connect(room ?? ctx.destination);
+  // through the muffled, echoing interaction bus (the heartbeat is untouched)
+  out.connect(soft).connect(fx());
   for (const [mult, vol] of [[1, 1], [2.005, 0.28], [3.01, 0.1]] as const) {
     const o = ctx.createOscillator();
     const g = ctx.createGain();
