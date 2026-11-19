@@ -1392,3 +1392,58 @@ html[lang] .fin__text {
 .fin__l2 .fin__g {
   display: inline;
 }
+
+/* ==========================================================================
+   Phones: every stage's artwork fits entirely inside its own picture block (never under the text card),
+   and each stage snaps into place when you reach it.
+   ========================================================================== */
+@media (max-width: 899px) {
+  .st {
+    --ah: 54svh;
+    scroll-snap-align: start;
+  }
+  html {
+    scroll-snap-type: y proximity;
+  }
+  .st__art {
+    height: var(--ah);
+  }
+  .st--4 .st__art {
+    height: var(--ah);
+  }
+  .s1-book {
+    height: 100%;
+  }
+  .s2-oval {
+    height: min(calc(var(--ah) * 0.86), 118vw);
+    width: auto;
+    aspect-ratio: 52 / 70.6;
+  }
+  .s2-circle,
+  .s2-ring {
+    width: min(calc(var(--ah) * 0.5), 50vw);
+  }
+  .s3-hands {
+    height: min(calc(var(--ah) * 0.94), 100vw);
+    width: auto;
+  }
+  .s5-wrap,
+  .s6-wrap,
+  .s7-wrap {
+    width: min(92vw, calc(var(--ah) * 0.92));
+  }
+  .s6-wrap {
+    width: min(100vw, calc(var(--ah) * 0.98));
+  }
+  /* chapter IV: the mountain lives in the picture block; below it the text card has its own dark ground */
+  .st--4 .st__bg {
+    inset: 0 0 auto 0;
+    height: var(--ah);
+  }
+  .st--4 .st__bg .bgimg {
+    object-position: 50% 30%;
+  }
+  .st--4 {
+    background: #04122c;
+  }
+}

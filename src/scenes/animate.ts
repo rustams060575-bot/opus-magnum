@@ -608,7 +608,7 @@ function buildStage(sec: HTMLElement, mode: Mode) {
   // phones: the text is simply there, fully lit — a dimmed "reading light" is hard to read on a small screen
   gsap.set(words, { opacity: 1 });
   // layered scroll parallax: the artwork drifts against the page, the background against the artwork
-  gsap.fromTo(art, { yPercent: -6 }, { yPercent: 6, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 0.5 } });
+  gsap.fromTo(art, { y: -22 }, { y: 22, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: 0.5 } });
   if (cite) gsap.from(cite, { autoAlpha: 0, y: 10, scrollTrigger: { trigger: cite, start: 'top 94%', toggleActions: 'play none none reverse' } });
   if (act) gsap.from(act, { autoAlpha: 0, y: 10, scrollTrigger: { trigger: act, start: 'top 96%', toggleActions: 'play none none reverse' } });
   if (bgImg) gsap.fromTo(bgImg, { scale: 1.16, yPercent: -4 }, { scale: 1.02, yPercent: 4, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: true } });
