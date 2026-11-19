@@ -34,7 +34,7 @@ export const agentTexts: Record<string, AgentText> = {
   en: {
     ui: {
       open: 'Talk it through',
-      title: 'Your guide',
+      title: 'Ariadne, your guide',
       sub: 'A quiet conversation about this stage',
       placeholder: 'Write what comes to mind…',
       send: 'Send',
@@ -74,7 +74,7 @@ export const agentTexts: Record<string, AgentText> = {
   ru: {
     ui: {
       open: 'Поговорить',
-      title: 'Твой проводник',
+      title: 'Ариадна, проводник',
       sub: 'Тихий разговор об этой стадии',
       placeholder: 'Напиши, что приходит в голову…',
       send: 'Отправить',
@@ -114,7 +114,7 @@ export const agentTexts: Record<string, AgentText> = {
   es: {
     ui: {
       open: 'Hablarlo',
-      title: 'Tu guía',
+      title: 'Ariadna, tu guía',
       sub: 'Una conversación tranquila sobre esta etapa',
       placeholder: 'Escribe lo que te venga a la mente…',
       send: 'Enviar',
@@ -154,7 +154,7 @@ export const agentTexts: Record<string, AgentText> = {
   uk: {
     ui: {
       open: 'Поговорити',
-      title: 'Твій провідник',
+      title: 'Аріадна, провідник',
       sub: 'Тиха розмова про цю стадію',
       placeholder: 'Напиши, що спадає на думку…',
       send: 'Надіслати',
@@ -194,7 +194,7 @@ export const agentTexts: Record<string, AgentText> = {
   fr: {
     ui: {
       open: 'En parler',
-      title: 'Ton guide',
+      title: 'Ariane, ton guide',
       sub: 'Une conversation calme sur cette étape',
       placeholder: 'Écris ce qui te vient à l’esprit…',
       send: 'Envoyer',
@@ -234,7 +234,7 @@ export const agentTexts: Record<string, AgentText> = {
   de: {
     ui: {
       open: 'Darüber sprechen',
-      title: 'Dein Begleiter',
+      title: 'Ariadne, dein Begleiter',
       sub: 'Ein ruhiges Gespräch über diese Stufe',
       placeholder: 'Schreib, was dir in den Sinn kommt …',
       send: 'Senden',
@@ -274,7 +274,7 @@ export const agentTexts: Record<string, AgentText> = {
   pt: {
     ui: {
       open: 'Conversar',
-      title: 'Seu guia',
+      title: 'Ariadne, seu guia',
       sub: 'Uma conversa tranquila sobre esta etapa',
       placeholder: 'Escreva o que lhe vier à mente…',
       send: 'Enviar',
