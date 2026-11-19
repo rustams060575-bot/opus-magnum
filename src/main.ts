@@ -478,6 +478,7 @@ async function enter(fast = false) {
   if (fast) {
     // the page was reloaded mid-journey: no intro, straight back to where the visitor was
     pre.remove();
+    void startAudio();
     playIntro();
     lenis.start();
     prefetchRest();

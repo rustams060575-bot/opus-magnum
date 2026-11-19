@@ -28,6 +28,8 @@ const musicLevel = { v: 0 };
 const mix = { duck: 1, soft: 1 };
 let filter: BiquadFilterNode | null = null;
 let routed = false;
+let wantMusic = false;
+let silent: HTMLAudioElement | null = null;
 let brightFreq = 3200;
 
 const base = import.meta.env.BASE_URL;
@@ -161,6 +163,7 @@ async function startMusicLayer() {
     el.loop = true;
     el.preload = 'auto';
   }
+  wantMusic = true;
   if (el) el.play().catch(() => undefined);
   // route the music through a low-pass filter so it can open up (grow brighter) as the journey moves toward the light
   if (ctx && el && !routed) {
@@ -176,14 +179,31 @@ async function startMusicLayer() {
       /* already routed or unsupported: play unfiltered */
     }
   }
-  gsap.to(musicLevel, { v: 1, duration: 3, ease: 'power1.inOut', onUpdate: apply });
+  gsap.to(musicLevel, { v: 1, duration: 3, ease: 'power1.inOut', onUpdate: apply, overwrite: true });
 }
 
 function stopMusicLayer() {
-  gsap.to(musicLevel, { v: 0, duration: 0.8, onUpdate: apply, onComplete: () => el?.pause() });
+  wantMusic = false;
+  gsap.to(musicLevel, {
+    v: 0,
+    duration: 0.8,
+    onUpdate: apply,
+    overwrite: true,
+    // a late "pause" must never cut music that has been switched on again meanwhile
+    onComplete: () => {
+      if (mode !== 'music') el?.pause();
+    },
+  });
 }
 function stopBeatLayer() {
-  gsap.to(beatLevel, { v: 0, duration: 0.5, onUpdate: apply });
+  gsap.to(beatLevel, { v: 0, duration: 0.5, onUpdate: apply, overwrite: true });
+}
+
+/** Make sure the background music is really playing (after a dialog, the guide chat, speech…). Never restarts it. */
+export function ensureMusic(): void {
+  if (mode !== 'music') return;
+  if (ctx && ctx.state !== 'running') void ctx.resume().catch(() => undefined);
+  if (el && el.paused) el.play().catch(() => undefined);
 }
 
 const NAMES: Record<string, [string, string, string]> = {
@@ -241,20 +261,48 @@ export function primeSound(): void {
   paintButton();
   if (mode === 'off') return;
   void startBeatLayer();
-  const evs = ['pointerdown', 'keydown', 'touchstart'];
-  const once = () => {
-    evs.forEach((n) => removeEventListener(n, once, true));
-    if (mode !== 'off') {
-      void startBeatLayer();
-      if (mode === 'music') void startMusicLayer();
+  // Chrome/Safari only count click / keydown / touchend / pointerup as an audio-unlocking gesture (not pointerdown),
+  // so keep listening until the context is truly running instead of giving up after the first event.
+  const evs = ['pointerdown', 'pointerup', 'click', 'keydown', 'touchstart', 'touchend', 'wheel'];
+  const unlock = async () => {
+    if (mode === 'off') return;
+    // synchronous, inside the gesture: wake the context, play a silent blip (iOS), and an inaudible <audio> so the
+    // phone's silent switch does not mute Web Audio
+    if (ensureCtx() && ctx) {
+      void ctx.resume().catch(() => undefined);
+      try {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        g.gain.value = 0.0001;
+        o.connect(g).connect(ctx.destination);
+        o.start();
+        o.stop(ctx.currentTime + 0.05);
+        if (!silent) {
+          silent = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+          silent.loop = true;
+          silent.volume = 0.01;
+        }
+        void silent.play().catch(() => undefined);
+      } catch {
+        /* ignore */
+      }
     }
+    await startBeatLayer();
+    if (mode === 'music' || wantMusic) await startMusicLayer();
+    if (ctx && ctx.state === 'running') evs.forEach((n) => removeEventListener(n, unlock, true));
   };
-  evs.forEach((n) => addEventListener(n, once, true));
+  evs.forEach((n) => addEventListener(n, unlock, true));
 }
 
-/** Called from the Enter button (a guaranteed gesture): make sure the heartbeat is running. */
+/**
+ * Called from the Enter button (a guaranteed gesture): the heartbeat keeps going and the background music starts and
+ * then plays continuously (unless the visitor chose silence earlier).
+ */
 export async function startAudio(): Promise<void> {
-  if (mode !== 'off') await startBeatLayer();
+  if (mode === 'off') return;
+  await startBeatLayer();
+  // music is only ever the visitor's own choice (the "music" button); if they turned it on, make sure it keeps playing
+  if (mode === 'music') await startMusicLayer();
 }
 
 /** re-label the sound button (language change) */
@@ -280,7 +328,7 @@ export function setBrightness(p: number): void {
 
 /** Lower everything while the chapter is read aloud. */
 export function duckMusic(on: boolean): void {
-  gsap.to(mix, { duck: on ? 0.28 : 1, duration: 0.6, onUpdate: apply });
+  gsap.to(mix, { duck: on ? 0.28 : 1, duration: 0.6, onUpdate: apply, overwrite: true });
 }
 
 /** Gentle mode: quieter sound. */

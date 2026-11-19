@@ -1,4 +1,4 @@
-import { duckMusic } from '../core/audio';
+import { duckMusic, ensureMusic } from '../core/audio';
 
 /** "Listen to the chapter" — the browser's own speech synthesis (no audio files, works offline on most devices). */
 const TAGS: Record<string, string> = { en: 'en-US', ru: 'ru-RU', es: 'es-ES', uk: 'uk-UA', fr: 'fr-FR', de: 'de-DE', pt: 'pt-PT' };
@@ -6,13 +6,21 @@ const TAGS: Record<string, string> = { en: 'en-US', ru: 'ru-RU', es: 'es-ES', uk
 export const speechSupported = typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined';
 
 let activeBtn: HTMLElement | null = null;
+/** bumped on every start/stop: callbacks of cancelled utterances carry an old token and are ignored */
+let token = 0;
+/** Chrome garbage-collects utterances that are not referenced, which silently drops speech and `onend` */
+const keep = new Set<SpeechSynthesisUtterance>();
 
+/** Stops ONLY the card's speech; the background music is merely un-ducked and keeps playing. */
 export function stopSpeech(): void {
   if (!speechSupported) return;
+  token++;
   speechSynthesis.cancel();
+  keep.clear();
   activeBtn?.classList.remove('on');
   activeBtn = null;
   duckMusic(false);
+  ensureMusic();
 }
 
 function pickVoice(tag: string): SpeechSynthesisVoice | undefined {
@@ -38,20 +46,28 @@ export function toggleSpeech(btn: HTMLElement, parts: string[], lang: string, la
   btn.classList.add('on');
   (btn.querySelector('span') ?? btn).textContent = labels[1];
   duckMusic(true);
-  chunks.forEach((c, i) => {
-    const u = new SpeechSynthesisUtterance(c);
-    u.lang = tag;
-    if (voice) u.voice = voice;
-    u.rate = 0.92;
-    u.pitch = 1;
-    if (i === chunks.length - 1) {
-      u.onend = () => {
-        if (activeBtn === btn) {
-          stopSpeech();
-          (btn.querySelector('span') ?? btn).textContent = labels[0];
-        }
-      };
-    }
-    speechSynthesis.speak(u);
-  });
+  const my = token;
+  const finish = () => {
+    if (my !== token || activeBtn !== btn) return;
+    stopSpeech();
+    (btn.querySelector('span') ?? btn).textContent = labels[0];
+  };
+  // Chrome drops a speak() issued in the same tick as cancel(): start on the next tick
+  setTimeout(() => {
+    if (my !== token) return;
+    speechSynthesis.resume();
+    chunks.forEach((c, i) => {
+      const u = new SpeechSynthesisUtterance(c);
+      u.lang = tag;
+      if (voice) u.voice = voice;
+      u.rate = 0.92;
+      u.pitch = 1;
+      keep.add(u);
+      if (i === chunks.length - 1) {
+        u.onend = finish;
+        u.onerror = finish;
+      }
+      speechSynthesis.speak(u);
+    });
+  }, 60);
 }

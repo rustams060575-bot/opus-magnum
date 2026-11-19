@@ -1,5 +1,6 @@
 import { getProvider, type AgentContext, type AgentMessage, type AgentReply } from '../agent';
 import { agentFor } from '../i18n/agent';
+import { ensureMusic } from '../core/audio';
 
 /**
  * The guide's chat sheet. It talks to whatever provider is registered (src/agent/index.ts): the built-in LocalGuide
@@ -51,6 +52,7 @@ export function closeAgent(): void {
   root = null;
   node.classList.remove('on');
   c.start();
+  ensureMusic();
   setTimeout(() => node.remove(), 380);
   lastFocus?.focus?.({ preventScroll: true });
 }

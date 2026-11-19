@@ -149,7 +149,7 @@ function stage(s: Extract<SceneDef, { type: 'stage' }>, L: Locale): string {
   const ps = t.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('');
   const cite = t.cite ? `<p class="st__cite">${esc(t.cite)}</p>` : '';
   const X = extraFor(L.code);
-  const act = `<div class="st__act"><button type="button" class="act act--r" data-ritual="${s.n}"><i></i>${esc(jfor(L.code).ui.ritual)}</button><button type="button" class="act act--p" data-practice="${s.n}"><i></i>${esc(X.ui.practice)}</button><button type="button" class="act act--l" data-listen="${s.n}"><i></i><span>${esc(X.ui.listen)}</span></button><button type="button" class="act act--l" data-agent="${s.n}"><i></i>${esc(agentFor(L.code).ui.open)}</button></div>`;
+  const act = `<div class="st__act"><button type="button" class="act act--r" data-ritual="${s.n}"><i></i>${esc(jfor(L.code).ui.ritual)}</button><button type="button" class="act act--p" data-practice="${s.n}"><i></i>${esc(X.ui.practice)}</button><button type="button" class="act act--l" data-agent="${s.n}"><i></i>${esc(agentFor(L.code).ui.open)}</button></div>`;
   return `
 <section class="st st--${s.n} st--${s.side} scene" id="${s.id}" data-scene="${s.id}" data-stage="${s.n}">
   <div class="st__bg">${a.bg}</div>
