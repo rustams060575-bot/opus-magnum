@@ -3,6 +3,7 @@ import type { Locale } from '../i18n';
 import type { Extra } from '../i18n/extra';
 import { ROMAN } from '../scenes/config';
 import { getNotes, setNote } from './store';
+import { arcFor } from '../i18n/arc';
 
 /**
  * One overlay for everything the visitor does themselves: the practice (question + breathing + note),
@@ -120,6 +121,38 @@ export function openPractice(n: number): void {
       msg.textContent = X.ui.saved;
     }, 400);
   });
+}
+
+/* ----------------- the first thought, read again at the end ----------------- */
+export function openFirst(): void {
+  const A = arcFor(c.lang());
+  const X = c.X();
+  const notes = getNotes();
+  const first = notes.first;
+  if (!first?.trim()) return;
+  show(
+    `<p class="pn__eyebrow">${esc(A.eyebrow)}</p>
+<blockquote class="pn__quote">${esc(first).replace(/\n/g, '<br>')}</blockquote>
+<p class="pn__q">${esc(A.noticeQ)}</p>
+<textarea class="pn__ta" rows="4" maxlength="2000" placeholder="${esc(A.replyPh)}">${esc(notes.firstReply ?? '')}</textarea>
+<p class="pn__saved" aria-live="polite"></p>`,
+    'pn--first',
+  );
+  const ta = root.querySelector<HTMLTextAreaElement>('.pn__ta')!;
+  const msg = root.querySelector<HTMLElement>('.pn__saved')!;
+  ta.addEventListener('input', () => {
+    clearTimeout(saveT);
+    saveT = window.setTimeout(() => {
+      setNote('firstReply', ta.value);
+      msg.textContent = X.ui.saved;
+    }, 400);
+  });
+}
+
+/* ------------------------- a short card about a symbol ------------------------- */
+export function openAbout(kind: 'mirror' | 'mountain' | 'mandala'): void {
+  const A = arcFor(c.lang());
+  show(`<p class="pn__eyebrow">${esc(A.about[kind])}</p>${A.cards[kind].map((t) => `<p class="pn__q">${esc(t)}</p>`).join('')}`, 'pn--about');
 }
 
 /* -------------------------------- diary -------------------------------- */

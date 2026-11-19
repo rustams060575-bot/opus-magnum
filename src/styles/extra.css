@@ -1443,3 +1443,118 @@ html[lang] .fin__text {
     background: #04122c;
   }
 }
+
+/* ==========================================================================
+   First thought → symbols → echo of the heart in the mandala
+   ========================================================================== */
+.st__first {
+  margin: 1.4em 0 0.2em;
+  pointer-events: auto;
+}
+.first__in {
+  width: 100%;
+  max-width: 34em;
+  padding: 0.7em 0.2em;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(120, 40, 20, 0.45);
+  color: inherit;
+  font: inherit;
+  font-size: 0.95em;
+  font-style: italic;
+  outline: none;
+}
+.first__in::placeholder {
+  color: inherit;
+  opacity: 0.55;
+}
+.first__in:focus {
+  border-bottom-color: rgba(200, 80, 40, 0.9);
+}
+.pn__quote {
+  margin: 0.4em 0 1.2em;
+  padding: 0.2em 0 0.2em 1em;
+  border-left: 2px solid rgba(255, 200, 120, 0.55);
+  font-style: italic;
+  line-height: 1.55;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* a delicate point inside the artwork that opens a short card */
+.about {
+  position: absolute;
+  z-index: 6;
+  bottom: 7%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.55em 0.9em 0.55em 0.7em;
+  border: 1px solid rgba(255, 220, 160, 0.35);
+  border-radius: 999px;
+  background: rgba(8, 8, 12, 0.35);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: rgba(255, 238, 210, 0.92);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.about i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffcf7a;
+  box-shadow: 0 0 0 0 rgba(255, 207, 122, 0.6);
+  animation: aboutDot 3.2s ease-in-out infinite;
+}
+@keyframes aboutDot {
+  50% {
+    box-shadow: 0 0 0 7px rgba(255, 207, 122, 0);
+  }
+}
+.about:focus-visible {
+  outline: 2px solid #ffcf7a;
+  outline-offset: 3px;
+}
+.about--mirror,
+.about--mandala {
+  right: 9%;
+}
+.about--mountain {
+  left: 9%;
+}
+@media (max-width: 899px) {
+  .about--mirror,
+  .about--mountain,
+  .about--mandala {
+    left: 50%;
+    right: auto;
+    translate: -50% 0;
+    bottom: 4%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .about i {
+    animation: none;
+  }
+}
+/* the echo: one shared look for the heart's two beats and the mandala's two passes of light */
+.echo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+}
+.echo--mandala {
+  background: radial-gradient(circle, rgba(255, 214, 130, 0) 52%, rgba(255, 214, 130, 0.55) 60%, rgba(255, 214, 130, 0) 70%);
+}
+.echo--heart {
+  inset: 10% 6%;
+  background: radial-gradient(ellipse, rgba(255, 120, 70, 0.55) 0%, rgba(255, 80, 40, 0.2) 50%, rgba(255, 80, 40, 0) 72%);
+}
+.echo--still.echo--mandala {
+  background: radial-gradient(circle, rgba(255, 214, 130, 0.35) 0%, rgba(255, 214, 130, 0) 62%);
+}

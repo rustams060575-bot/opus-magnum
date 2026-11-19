@@ -43,7 +43,8 @@ import { renderApp } from './scenes/render';
 import { destroyScenes, initScenes, playIntro, sceneStart, type Hooks } from './scenes/animate';
 import { scenes, type Mood } from './scenes/config';
 import { isSoft, setSoft } from './core/prefs';
-import { close as closePanel, initPanel, openDiary, openMap, openPractice } from './ui/panel';
+import { close as closePanel, initPanel, openAbout, openDiary, openFirst, openMap, openPractice } from './ui/panel';
+import { echo } from './core/echo';
 import { closePulse, initPulse, openPulse } from './ui/pulse';
 import { initGlossaryDismiss } from './ui/glossary';
 import { stopSpeech, toggleSpeech, speechSupported } from './ui/speech';
@@ -389,11 +390,13 @@ initConstellation({
 }
 initGlossaryDismiss();
 app.addEventListener('click', (e) => {
-  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-practice], [data-listen], [data-diary], [data-map], [data-pulse-open], [data-agent], [data-ritual], [data-cons]');
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-practice], [data-first], [data-about], [data-listen], [data-diary], [data-map], [data-pulse-open], [data-agent], [data-ritual], [data-cons]');
   if (!t) return;
   if (t.dataset.ritual) openRitual(Number(t.dataset.ritual));
   else if (t.dataset.cons !== undefined) openConstellation();
   else if (t.dataset.agent) openAgent(Number(t.dataset.agent));
+  else if (t.dataset.first !== undefined) openFirst();
+  else if (t.dataset.about) openAbout(t.dataset.about as 'mirror' | 'mountain' | 'mandala');
   else if (t.dataset.practice) openPractice(Number(t.dataset.practice));
   else if (t.dataset.diary !== undefined) openDiary();
   else if (t.dataset.map !== undefined) openMap();
@@ -405,6 +408,20 @@ app.addEventListener('click', (e) => {
     toggleSpeech(t, [st.title, ...(st.q ? [st.q] : []), ...st.p], lang, [X.listen, X.stopListen]);
   }
 });
+/* the optional first thought (stage I): saved on this device only; the epilogue link appears once it exists */
+{
+  let t = 0;
+  app.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (!el.classList?.contains('first__in')) return;
+    clearTimeout(t);
+    t = window.setTimeout(() => {
+      setNote('first', el.value);
+      const has = !!getNotes().first?.trim();
+      document.querySelectorAll<HTMLElement>('[data-first]').forEach((b) => (b.hidden = !has));
+    }, 350);
+  });
+}
 document.getElementById('map-btn')?.addEventListener('click', () => openMap());
 document.getElementById('agent-btn')?.addEventListener('click', () => openAgent());
 document.getElementById('pulse-btn')?.addEventListener('click', () => openPulse());
@@ -494,6 +511,7 @@ async function enter(fast = false) {
     gsap.fromTo(pre, { '--r': '0%' }, { '--r': '90%', duration: 2.4, delay: 0.35, ease: 'power3.inOut', onComplete: () => pre.remove() });
   }
   setTimeout(() => playIntro(), 500);
+  setTimeout(() => echo(document.querySelector<HTMLElement>('.hero__heartwrap'), 'heart'), 3600);
   setTimeout(() => lenis.start(), 2400);
   prefetchRest();
 }

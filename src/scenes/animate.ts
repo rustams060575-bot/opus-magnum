@@ -4,6 +4,7 @@ import { splitChars, splitMaskWords, splitWords } from '../core/split';
 import { clearPulses, onBeatFrame, onLub, registerGlow, registerPulse } from '../core/beat';
 import { Smoke } from '../core/smoke';
 import { isSoft } from '../core/prefs';
+import { echo } from '../core/echo';
 import { extraFor } from '../i18n';
 import { markTerms } from '../ui/glossary';
 import { scenes, type Mood, type SceneDef } from './config';
@@ -540,6 +541,9 @@ function buildStage(sec: HTMLElement, mode: Mode) {
   const glow3 = $('.s3-aura', sec);
   if (glow3) registerGlow(glow3, 0.3, 0.65);
   if (mode !== 'reduce') ambient(n, sec);
+  if (n === 7) {
+    ScrollTrigger.create({ trigger: $('.s7-man', sec) ?? sec, start: 'top 62%', once: true, onEnter: () => echo($('.s7-man', sec), 'mandala') });
+  }
 
   if (mode === 'reduce') {
     ScrollTrigger.create({ id: sec.id, trigger: stackOf(sec), start: 'top top', end: 'bottom top' });

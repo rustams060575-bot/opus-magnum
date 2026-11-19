@@ -1,5 +1,7 @@
 import { extraFor, type Locale } from '../i18n';
 import { agentFor } from '../i18n/agent';
+import { arcFor } from '../i18n/arc';
+import { getNotes } from '../ui/store';
 import { jfor } from '../journey/content';
 import { img, frameUrl, frameBg, cutUrl, bgUrl, cutAspect, ROMAN, scenes, type SceneDef, type HeartLayer } from './config';
 
@@ -149,15 +151,19 @@ function stage(s: Extract<SceneDef, { type: 'stage' }>, L: Locale): string {
   const ps = t.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('');
   const cite = t.cite ? `<p class="st__cite">${esc(t.cite)}</p>` : '';
   const X = extraFor(L.code);
+  const A = arcFor(L.code);
+  const aboutKind = ({ 2: 'mirror', 4: 'mountain', 7: 'mandala' } as Record<number, 'mirror' | 'mountain' | 'mandala'>)[s.n];
+  const about = aboutKind ? `<button type="button" class="about about--${aboutKind}" data-about="${aboutKind}"><i></i><span>${esc(A.about[aboutKind])}</span></button>` : '';
+  const first = s.n === 1 ? `<div class="st__first"><input class="first__in" type="text" maxlength="600" autocomplete="off" placeholder="${esc(A.firstPh)}" aria-label="${esc(A.firstPh)}" value="${esc(getNotes().first ?? '')}"></div>` : '';
   const act = `<div class="st__act"><button type="button" class="act act--r" data-ritual="${s.n}"><i></i>${esc(jfor(L.code).ui.ritual)}</button><button type="button" class="act act--p" data-practice="${s.n}"><i></i>${esc(X.ui.practice)}</button><button type="button" class="act act--l" data-agent="${s.n}"><i></i>${esc(agentFor(L.code).ui.open)}</button></div>`;
   return `
 <section class="st st--${s.n} st--${s.side} scene" id="${s.id}" data-scene="${s.id}" data-stage="${s.n}">
   <div class="st__bg">${a.bg}</div>
-  <div class="st__art">${a.art}</div>
+  <div class="st__art">${a.art}${about}</div>
   <div class="st__cv">
     <div class="st__text">
       <h2 class="st__title">${esc(L.ui.stage)} ${ROMAN[s.n - 1]}: ${esc(t.title)}</h2>
-      ${q}${ps}${cite}${act}
+      ${q}${ps}${cite}${first}${act}
     </div>
   </div>
 </section>`;
@@ -172,7 +178,7 @@ function epilogue(L: Locale, z: number, dwell: number): string {
     <h2 class="st__title">${esc(L.ui.epilogue)}: ${esc(e.title)}</h2>
     <p class="st__q">${esc(e.q)}</p>
     ${e.p.map((p) => `<p class="st__p">${esc(p)}</p>`).join('')}
-    <div class="st__act st__act--c"><button type="button" class="act act--p" data-diary><i></i>${esc(extraFor(L.code).ui.diary)}</button><button type="button" class="act act--l" data-map><i></i>${esc(extraFor(L.code).ui.map)}</button><button type="button" class="act act--l" data-pulse-open><i></i>${esc(extraFor(L.code).ui.pulseBtn)}</button><button type="button" class="act act--l" data-agent="8"><i></i>${esc(agentFor(L.code).ui.open)}</button><button type="button" class="act act--r" data-cons><i></i>${esc(jfor(L.code).ui.consTitle)}</button></div>
+    <div class="st__act st__act--c"><button type="button" class="act act--p" data-diary><i></i>${esc(extraFor(L.code).ui.diary)}</button><button type="button" class="act act--l" data-map><i></i>${esc(extraFor(L.code).ui.map)}</button><button type="button" class="act act--l" data-pulse-open><i></i>${esc(extraFor(L.code).ui.pulseBtn)}</button><button type="button" class="act act--l" data-agent="8"><i></i>${esc(agentFor(L.code).ui.open)}</button><button type="button" class="act act--r" data-cons><i></i>${esc(jfor(L.code).ui.consTitle)}</button><button type="button" class="act act--p" data-first${getNotes().first?.trim() ? '' : ' hidden'}><i></i>${esc(arcFor(L.code).readStart)}</button></div>
   </div>
 </section>
 ${stack('finale', 'finale', dwell, z + 1, `<section class="fin scene" id="finale" data-scene="finale">

@@ -75,7 +75,7 @@ export const de: Locale = {
     {
       title: 'Das Selbst — das Mandala der Ganzheit',
       p: [
-        'Die Reise ist vollendet. Du hast Licht und Schatten, Bewusstes und Unbewusstes integriert. Das ist das Selbst — dein wahres Zentrum. Ausgeglichen, vollständig und zutiefst friedlich. Du bist nicht länger gespalten; du bist die Ganzheit deines eigenen Seins.',
+        'Die Reise ist vollendet. Was sich auf dem Weg in dir verändert hat, weißt nur du — halte inne und spüre, was innen antwortet. Das ist das Selbst — dein wahres Zentrum. Ausgeglichen, vollständig und zutiefst friedlich. Du bist nicht länger gespalten; du bist die Ganzheit deines eigenen Seins.',
         'Lebe aus deinem Zentrum. Lass äußere Stürme dein inneres Gleichgewicht nicht erschüttern. Du bist deine eigene Autorität. Wahre Weisheit heißt zu wissen, dass alles, was du draußen gesucht hast, längst in dir war. Sei ganz.',
       ],
     },

@@ -75,7 +75,7 @@ export const fr: Locale = {
     {
       title: 'Le Soi — le Mandala de la Totalité',
       p: [
-        'Le voyage est accompli. Vous avez intégré la lumière et l’Ombre, le conscient et l’inconscient. Voici le Soi — votre véritable Centre. Équilibré, complet, éternellement paisible. Vous n’êtes plus divisé ; vous êtes la totalité de votre propre existence.',
+        'Le voyage est accompli. Ce qui a changé en vous en chemin, vous seul pouvez le savoir : arrêtez-vous et sentez ce qui répond au-dedans. Voici le Soi — votre véritable Centre. Équilibré, complet, éternellement paisible. Vous n’êtes plus divisé ; vous êtes la totalité de votre propre existence.',
         'Vivez depuis votre Centre. Ne laissez pas les tempêtes extérieures ébranler votre équilibre intérieur. Vous êtes votre propre autorité. La vraie sagesse est de savoir que tout ce que vous cherchiez au-dehors était déjà en vous. Soyez entier.',
       ],
     },

@@ -75,7 +75,7 @@ export const pt: Locale = {
     {
       title: 'O Si-mesmo — o Mandala da Totalidade',
       p: [
-        'A jornada está completa. Você integrou a luz e a Sombra, o consciente e o inconsciente. Este é o Si-mesmo — o seu verdadeiro Centro. Equilibrado, completo e eternamente em paz. Você já não está dividido; é a totalidade da sua própria existência.',
+        'A jornada está completa. O que mudou em você pelo caminho, só você pode saber — pare e sinta o que responde por dentro. Este é o Si-mesmo — o seu verdadeiro Centro. Equilibrado, completo e eternamente em paz. Você já não está dividido; é a totalidade da sua própria existência.',
         'Viva a partir do seu Centro. Não deixe que tempestades externas abalem o seu equilíbrio interior. Você é a sua própria autoridade. A verdadeira sabedoria é saber que tudo o que você buscou fora já estava dentro de você. Seja inteiro.',
       ],
     },

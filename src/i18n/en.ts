@@ -75,7 +75,7 @@ export const en: Locale = {
     {
       title: 'The Self — the Mandala of Wholeness',
       p: [
-        'The journey is complete. You have integrated the light and the Shadow, the conscious and the unconscious. This is the Self — your true Center. Balanced, complete, and eternally peaceful. You are no longer divided; you are the totality of your own existence.',
+        'The journey is complete. What has changed in you along the way, only you can know — pause and notice what answers inside. This is the Self — your true Center. Balanced, complete, and eternally peaceful. You are no longer divided; you are the totality of your own existence.',
         'Live from your Center. Do not let external storms shake your inner balance. You are your own authority. True wisdom is knowing that everything you sought outside was already within you. Be whole.',
       ],
     },

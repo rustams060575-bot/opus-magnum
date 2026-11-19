@@ -75,7 +75,7 @@ export const es: Locale = {
     {
       title: 'El Sí-mismo — el Mandala de la Plenitud',
       p: [
-        'El viaje ha terminado. Has integrado la luz y la Sombra, lo consciente y lo inconsciente. Este es el Sí-mismo: tu verdadero Centro. Equilibrado, completo y eternamente en paz. Ya no estás dividido; eres la totalidad de tu propia existencia.',
+        'El viaje ha terminado. Qué ha cambiado en ti por el camino, solo tú puedes saberlo: detente y nota qué responde por dentro. Este es el Sí-mismo: tu verdadero Centro. Equilibrado, completo y eternamente en paz. Ya no estás dividido; eres la totalidad de tu propia existencia.',
         'Vive desde tu Centro. No dejes que las tormentas de afuera sacudan tu equilibrio interior. Tú eres tu propia autoridad. La verdadera sabiduría es saber que todo lo que buscabas fuera ya estaba dentro de ti. Sé pleno.',
       ],
     },
