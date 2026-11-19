@@ -11,8 +11,8 @@ import { onLub } from './beat';
  */
 const CANDIDATES = ['music.mp3', 'music.m4a', 'music.ogg', 'music.wav'];
 const KEY = 'opus-sound2';
-const MUSIC_VOLUME = 0.5;
-const BEAT_VOLUME = 0.3;
+const MUSIC_VOLUME = 0.32;
+const BEAT_VOLUME = 0.45;
 
 export type SoundMode = 'beat' | 'music' | 'off';
 
@@ -133,7 +133,7 @@ function lubDub() {
 
 function apply() {
   // with music playing the heartbeat steps back a little
-  if (master) master.gain.value = beatLevel.v * BEAT_VOLUME * mix.duck * mix.soft * (mode === 'music' ? 0.6 : 1);
+  if (master) master.gain.value = beatLevel.v * BEAT_VOLUME * mix.duck * mix.soft;
   if (el) el.volume = Math.min(1, musicLevel.v * MUSIC_VOLUME * mix.duck * mix.soft);
 }
 
