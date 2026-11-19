@@ -12,7 +12,7 @@ import { onLub } from './beat';
 const CANDIDATES = ['music.mp3', 'music.m4a', 'music.ogg', 'music.wav'];
 const KEY = 'opus-sound2';
 const MUSIC_VOLUME = 0.32;
-const BEAT_VOLUME = 0.45;
+const BEAT_VOLUME = 0.32;
 
 export type SoundMode = 'beat' | 'music' | 'off';
 
