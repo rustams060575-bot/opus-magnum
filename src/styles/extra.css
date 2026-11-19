@@ -1400,10 +1400,6 @@ html[lang] .fin__text {
 @media (max-width: 899px) {
   .st {
     --ah: 54svh;
-    scroll-snap-align: start;
-  }
-  html {
-    scroll-snap-type: y proximity;
   }
   .st__art {
     height: var(--ah);
