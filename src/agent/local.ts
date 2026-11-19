@@ -6,7 +6,7 @@ import type { AgentContext, AgentMessage, AgentProvider, AgentReply } from './ty
  * It reflects back what the visitor wrote, asks one gentle question at a time and offers to keep a thought.
  * It is a placeholder for the real agent: swap it by registering another provider (see src/agent/index.ts).
  */
-const DISTRESS =
+export const DISTRESS =
   /(suicid|kill myself|end my life|want to die|self[- ]?harm|hurt myself|не хочу жить|покончить с собой|убить себя|суицид|навредить себе|хочу умереть|no quiero vivir|quitarme la vida|autolesi|je veux mourir|me tuer|sterben will|umbringen|mich ritzen|quero morrer|me matar|не хочу жити|вбити себе|хочу померти)/i;
 
 const fill = (s: string, k: string, v: string) => s.replace(`{${k}}`, v);

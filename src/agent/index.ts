@@ -1,6 +1,7 @@
 import type { AgentProvider } from './types';
 import { httpProvider } from './http';
-import { localGuide } from './local';
+import { localGuide, DISTRESS } from './local';
+import { agentFor } from '../i18n/agent';
 
 export type { AgentContext, AgentMessage, AgentProvider, AgentReply } from './types';
 
@@ -14,7 +15,26 @@ export function registerProvider(p: AgentProvider): void {
 export function getProvider(): AgentProvider {
   if (provider) return provider;
   const url = (import.meta.env.VITE_AGENT_URL as string | undefined)?.trim();
-  provider = url ? httpProvider(url) : localGuide;
+  if (!url) provider = localGuide;
+  else {
+    const remote = httpProvider(url);
+    // the scripted guide stays in charge of the greeting, the mood chips and any sign of distress; the model does the rest,
+    // and if the network or server fails the scripted guide quietly takes over
+    provider = {
+      id: remote.id,
+      greet: localGuide.greet,
+      async send(messages, ctx, signal) {
+        const last = messages[messages.length - 1]?.text.trim() ?? '';
+        if (DISTRESS.test(last) || agentFor(ctx.lang).moods.some((m) => m === last)) return localGuide.send(messages, ctx, signal);
+        try {
+          return await remote.send(messages, ctx, signal);
+        } catch {
+          if (signal?.aborted) throw new Error('aborted');
+          return localGuide.send(messages, ctx, signal);
+        }
+      },
+    };
+  }
   return provider;
 }
 
